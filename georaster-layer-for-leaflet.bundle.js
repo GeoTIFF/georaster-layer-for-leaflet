@@ -143,7 +143,7 @@ module.exports = L.GridLayer.extend({
 
                         if (debug_level >= 1) time_started_reading_rasters = performance.now();
                         var values = rasters.map(function (raster) {
-                            return raster[y_in_raster_pixels * tiff_width + x_in_raster_pixels];
+                            return raster[y_in_raster_pixels][x_in_raster_pixels];
                         });
                         if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
                         var number_of_values = values.length;

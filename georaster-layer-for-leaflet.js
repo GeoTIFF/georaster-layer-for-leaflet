@@ -143,7 +143,7 @@ module.exports = L.GridLayer.extend({
                     let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
                    
                     if (debug_level >= 1) time_started_reading_rasters = performance.now(); 
-                    let values = rasters.map(raster => raster[ y_in_raster_pixels * tiff_width + x_in_raster_pixels]);
+                    let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
                     if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
                     let number_of_values = values.length;
                     let color = null;
