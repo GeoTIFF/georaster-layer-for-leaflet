@@ -2,7 +2,7 @@ let chroma = require("chroma-js");
 
 let L = window.L;
 
-module.exports = L.GridLayer.extend({
+var GeoRasterLayer = L.GridLayer.extend({
 
     initialize: function(options) {
         try {
@@ -202,3 +202,12 @@ module.exports = L.GridLayer.extend({
     }
 
 });
+
+if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+  module.exports = GeoRasterLayer;
+}
+if (typeof window !== "undefined") {
+  window["GeoRasterLayer"] = GeoRasterLayer;
+} else if (typeof self !== "undefined") {
+  self["GeoRasterLayer"] = GeoRasterLayer; // jshint ignore:line
+}
