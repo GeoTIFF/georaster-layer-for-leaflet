@@ -11,7 +11,7 @@ https://geotiff.github.io/georaster-layer-for-leaflet-example/
 
 # Why
 - Super faster rendering thanks to a simple nearest neighbor interpolation
-- Use of web workers means seemless integration that doesn't block main thread
+- Use of web workers means seamless integration that doesn't block main thread
 - Loads large geotiffs greater than a hundred megabytes
 
 
