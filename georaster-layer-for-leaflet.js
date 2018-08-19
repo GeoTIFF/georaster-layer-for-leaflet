@@ -87,7 +87,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         let ymin = this._ymin;
         let xmax = this._xmax;
         let ymax = this._ymax;
- 
+
         //if (debug_level >= 1) console.group();
 
         //if (debug_level >= 1) console.log("starting createTile with coords:", coords);
@@ -114,7 +114,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         let resolution = this.options.resolution;
 
         let number_of_rectangles_across = resolution;
-        let number_of_rectangles_down = resolution;       
+        let number_of_rectangles_down = resolution;
 
         let height_of_rectangle_in_pixels = this._tile_height / number_of_rectangles_down;
         //if (debug_level >= 1) console.log("height_of_rectangle_in_pixels:", height_of_rectangle_in_pixels);
@@ -141,22 +141,26 @@ var GeoRasterLayer = L.GridLayer.extend({
                     //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
                     let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
                     let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
-                   
-                    if (debug_level >= 1) time_started_reading_rasters = performance.now(); 
+
+                    if (debug_level >= 1) time_started_reading_rasters = performance.now();
                     let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
                     if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
-                    let number_of_values = values.length;
                     let color = null;
-                    if (number_of_values == 1) {
-                        let value = values[0];
-                        if (value != no_data_value) {
-                            color = scale( (values[0] - mins[0]) / ranges[0] ).hex();
-                        }
-                    } else if (number_of_values == 2) {
-                    } else if (number_of_values == 3) {
-                        if (values[0] != no_data_value) {
-                            color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
-                        }
+                    if(this.options.pixelValueToColorFn) {
+                      color = this.options.pixelValueToColorFn(values[0]);
+                    } else {
+                      let number_of_values = values.length;
+                      if (number_of_values == 1) {
+                          let value = values[0];
+                          if (value != no_data_value) {
+                              color = scale( (values[0] - mins[0]) / ranges[0] ).hex();
+                          }
+                      } else if (number_of_values == 2) {
+                      } else if (number_of_values == 3) {
+                          if (values[0] != no_data_value) {
+                              color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
+                          }
+                      }
                     }
                     //let colors = ["red", "green", "blue", "pink", "purple", "orange"];
                     //let color = colors[Math.round(colors.length * Math.random())];

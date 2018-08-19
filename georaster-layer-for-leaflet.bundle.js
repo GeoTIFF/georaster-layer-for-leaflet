@@ -59,6 +59,7 @@ var GeoRasterLayer = L.GridLayer.extend({
     },
 
     createTile: function createTile(coords) {
+        var _this = this;
 
         var debug_level = 0;
 
@@ -146,16 +147,20 @@ var GeoRasterLayer = L.GridLayer.extend({
                             return raster[y_in_raster_pixels][x_in_raster_pixels];
                         });
                         if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
-                        var number_of_values = values.length;
                         var color = null;
-                        if (number_of_values == 1) {
-                            var value = values[0];
-                            if (value != no_data_value) {
-                                color = scale((values[0] - mins[0]) / ranges[0]).hex();
-                            }
-                        } else if (number_of_values == 2) {} else if (number_of_values == 3) {
-                            if (values[0] != no_data_value) {
-                                color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
+                        if (_this.options.pixelValueToColorFn) {
+                            color = _this.options.pixelValueToColorFn(values[0]);
+                        } else {
+                            var number_of_values = values.length;
+                            if (number_of_values == 1) {
+                                var value = values[0];
+                                if (value != no_data_value) {
+                                    color = scale((values[0] - mins[0]) / ranges[0]).hex();
+                                }
+                            } else if (number_of_values == 2) {} else if (number_of_values == 3) {
+                                if (values[0] != no_data_value) {
+                                    color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
+                                }
                             }
                         }
                         //let colors = ["red", "green", "blue", "pink", "purple", "orange"];
