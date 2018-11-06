@@ -130,14 +130,22 @@ var GeoRasterLayer = L.GridLayer.extend({
 
         let number_of_pixels_per_rectangle = this._tile_width / 8;
 
+        let map = this._map;
+        let tileSize = this.getTileSize();
+        let tileNwPoint = coords.scaleBy(tileSize);
 
         for (let h = 0; h < number_of_rectangles_down; h++) {
-            let lat = ymax_of_tile - (h + 0.5) * height_of_rectangle_in_degrees;
+            let latWestPoint = L.point(tileNwPoint.x, tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels);
+            let latWest = map.unproject(latWestPoint, coords.z);
+            let lat = latWest.lat;
             //if (debug_level >= 2) console.log("lat:", lat);
-            for (let w = 0; w < number_of_rectangles_across; w++) {
-                let lng = xmin_of_tile + (w + 0.5) * width_of_rectangle_in_degrees;
+            if (lat > ymin && lat < ymax) {
+              for (let w = 0; w < number_of_rectangles_across; w++) {
+                let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels);
+                let latLng = map.unproject(latLngPoint, coords.z);
+                let lng = latLng.lng;
                 //if (debug_level >= 2) console.log("lng:", lng);
-                if (lat > ymin && lat < ymax && lng > xmin && lng < xmax) {
+                if (lng > xmin && lng < xmax) {
                     //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
                     let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
                     let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
@@ -177,6 +185,7 @@ var GeoRasterLayer = L.GridLayer.extend({
                 } else {
                     //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#FF0000"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
                 }
+              }
             }
         }
 
