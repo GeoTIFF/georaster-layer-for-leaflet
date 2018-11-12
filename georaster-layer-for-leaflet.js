@@ -113,12 +113,16 @@ var GeoRasterLayer = L.GridLayer.extend({
 
         let resolution = this.options.resolution;
 
-        let number_of_rectangles_across = resolution;
-        let number_of_rectangles_down = resolution;
+        let raster_pixels_across = Math.ceil((xmax_of_tile - xmin_of_tile) / pixelWidth);
+        let raster_pixels_down = Math.ceil((ymax_of_tile - ymin_of_tile) / pixelHeight);
+        let number_of_rectangles_across = Math.min(resolution, raster_pixels_across);
+        let number_of_rectangles_down = Math.min(resolution, raster_pixels_down);
 
         let height_of_rectangle_in_pixels = this._tile_height / number_of_rectangles_down;
+        let height_of_rectangle_in_pixels_int = Math.ceil(height_of_rectangle_in_pixels);
         //if (debug_level >= 1) console.log("height_of_rectangle_in_pixels:", height_of_rectangle_in_pixels);
         let width_of_rectangle_in_pixels = this._tile_width / number_of_rectangles_across;
+        let width_of_rectangle_in_pixels_int = Math.ceil(width_of_rectangle_in_pixels);
         //if (debug_level >= 1) console.log("width_of_rectangle:", width_of_rectangle_in_pixels);
 
         let height_of_rectangle_in_degrees = ( ymax_of_tile - ymin_of_tile ) / number_of_rectangles_down;
@@ -135,20 +139,22 @@ var GeoRasterLayer = L.GridLayer.extend({
         let tileNwPoint = coords.scaleBy(tileSize);
 
         for (let h = 0; h < number_of_rectangles_down; h++) {
-            let latWestPoint = L.point(tileNwPoint.x, tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels);
+            let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
+            let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
             let latWest = map.unproject(latWestPoint, coords.z);
             let lat = latWest.lat;
             //if (debug_level >= 2) console.log("lat:", lat);
             if (lat > ymin && lat < ymax) {
+              let y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
+              let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
               for (let w = 0; w < number_of_rectangles_across; w++) {
-                let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels);
+                let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
                 let latLng = map.unproject(latLngPoint, coords.z);
                 let lng = latLng.lng;
                 //if (debug_level >= 2) console.log("lng:", lng);
                 if (lng > xmin && lng < xmax) {
                     //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
                     let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
-                    let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
 
                     if (debug_level >= 1) time_started_reading_rasters = performance.now();
                     let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
@@ -176,10 +182,10 @@ var GeoRasterLayer = L.GridLayer.extend({
                     if (color) {
                         context.fillStyle = color;
                         if (debug_level >= 1) time_started_filling_rect = performance.now();
-                        context.fillRect(w * width_of_rectangle_in_pixels, h * height_of_rectangle_in_pixels, width_of_rectangle_in_pixels, height_of_rectangle_in_pixels);
+                        context.fillRect(Math.round(w * width_of_rectangle_in_pixels), y_in_tile_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int);
                         if (debug_level >= 1) duration_filling_rects += performance.now() - time_started_filling_rect;
                     }
-                    //if (debug_level >= 2) console.log("filling:", [w * width_of_rectangle_in_pixels, h * height_of_rectangle_in_pixels, width_of_rectangle_in_pixels, height_of_rectangle_in_pixels]);
+                    //if (debug_level >= 2) console.log("filling:", [w * width_of_rectangle_in_pixels, rect_y_in_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int]);
                     //if (debug_level >= 2) console.log("with color:", color);
                     //if (debug_level >= 2) console.log("with context:", context);
                 } else {
