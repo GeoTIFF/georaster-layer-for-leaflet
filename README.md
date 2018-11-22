@@ -6,6 +6,11 @@ Display GeoTIFFs and soon other types of rasters on your Leaflet Map
 npm install georaster-layer-for-leaflet
 ```
 
+# Load Package via Script Tag
+```html
+<script src="https://unpkg.com/georaster-layer-for-leaflet/georaster-layer-for-leaflet.browserify.min.js"></script>
+```
+
 # Usage
 ```
 new GeoRasterLayer({georaster: georaster}).addTo(map);
