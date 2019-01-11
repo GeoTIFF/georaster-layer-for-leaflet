@@ -144,7 +144,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         let tileNwPoint = coords.scaleBy(tileSize);
 
         // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
-        setTimeout(function () {
+        setTimeout(async function () {
             for (let h = 0; h < number_of_rectangles_down; h++) {
                 let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
                 let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
@@ -164,10 +164,13 @@ var GeoRasterLayer = L.GridLayer.extend({
                         let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
 
                         if (debug_level >= 1) time_started_reading_rasters = performance.now();
+                        let values = null;
                         if (rasters) {
-                          let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
+                          values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
                         } else {
-                          let values = this.georaster.getValues(/* TODO implement this */)
+                          console.log('doing getValues');
+                          values = await this.georaster.getValues(y_in_raster_pixels, x_in_raster_pixels);
+                          console.log('getValues done: ', values);
                         }
                         if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
                         let color = null;
