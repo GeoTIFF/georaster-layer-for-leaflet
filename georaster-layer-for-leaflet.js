@@ -145,6 +145,94 @@ var GeoRasterLayer = L.GridLayer.extend({
 
         // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
         setTimeout(async function () {
+            let min_x = Number.MAX_SAFE_INTEGER;
+            let max_x = 0;
+            let min_y = Number.MAX_SAFE_INTEGER;
+            let max_y = 0;
+
+            let samples_per_pixel = null;
+            let tile_values = [];
+            if (rasters) {
+              samples_per_pixel = rasters.length;
+              for (let samp_i = 0; samp_i < samples_per_pixel; samp_i++) {
+                tile_values.push([]);
+              }
+            }
+
+            for (let h = 0; h < number_of_rectangles_down; h++) {
+                let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
+                let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
+                let latWest = map.unproject(latWestPoint, coords.z);
+                let lat = latWest.lat;
+                //if (debug_level >= 2) console.log("lat:", lat);
+                if ((!rasters) || (lat > ymin && lat < ymax)) {
+                  let y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
+                  let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
+                  for (let w = 0; w < number_of_rectangles_across; w++) {
+                    let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
+                    let latLng = map.unproject(latLngPoint, coords.z);
+                    let lng = latLng.lng;
+                    //if (debug_level >= 2) console.log("lng:", lng);
+                    if ((!rasters) || (lng > xmin && lng < xmax)) {
+                        //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
+                        let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
+
+                        if (debug_level >= 1) time_started_reading_rasters = performance.now();
+                        if (rasters) {
+                          let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
+                          for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
+                            tile_values[val_i].push(values[val_i])
+                          }
+                        } else {
+                          if (y_in_raster_pixels < min_y) {
+                            min_y = y_in_raster_pixels;
+                          }
+                          if (y_in_raster_pixels > max_y) {
+                            max_y = y_in_raster_pixels;
+                          }
+                          if (x_in_raster_pixels < min_x) {
+                            min_x = x_in_raster_pixels;
+                          }
+                          if (x_in_raster_pixels > max_x) {
+                            max_x = x_in_raster_pixels;
+                          }
+                        }
+                    } else {
+                        if (rasters) {
+                          for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
+                            tile_values[val_i].push(0);
+                          }
+                        }
+                    }
+                  }
+                } else {
+                    if (rasters) {
+                      for (let w = 0; w < number_of_rectangles_across; w++) {
+                        for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
+                          tile_values[val_i].push(0);
+                        }
+                      }
+                    }
+                }
+            }
+
+            if (!rasters) {
+              // careful not to flip min_y/max_y here
+              tile_values = await this.georaster.getValues(min_x, min_y, max_x, max_y, number_of_rectangles_across, number_of_rectangles_down);
+            }
+
+            let tile_values_2d = tile_values.map(valuesInOneDimension => {
+              const valuesInTwoDimensions = [];
+              const width = number_of_rectangles_across;
+              const height = number_of_rectangles_down;
+              for (let y = 0; y < height; y++) {
+                const start = y * width;
+                const end = start + width;
+                valuesInTwoDimensions.push(valuesInOneDimension.slice(start, end));
+              }
+              return valuesInTwoDimensions;
+            });
+
             for (let h = 0; h < number_of_rectangles_down; h++) {
                 let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
                 let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
@@ -164,14 +252,7 @@ var GeoRasterLayer = L.GridLayer.extend({
                         let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
 
                         if (debug_level >= 1) time_started_reading_rasters = performance.now();
-                        let values = null;
-                        if (rasters) {
-                          values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
-                        } else {
-                          console.log('doing getValues');
-                          values = await this.georaster.getValues(y_in_raster_pixels, x_in_raster_pixels);
-                          console.log('getValues done: ', values);
-                        }
+                        let values = tile_values_2d.map(raster => raster[h][w]);
                         if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
                         let color = null;
                         if(this.options.pixelValueToColorFn) {
