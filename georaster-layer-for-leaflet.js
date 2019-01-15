@@ -144,7 +144,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         let tileNwPoint = coords.scaleBy(tileSize);
 
         // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
-        setTimeout(async function () {
+        (async function () {
             let min_x = Number.MAX_SAFE_INTEGER;
             let max_x = 0;
             let min_y = Number.MAX_SAFE_INTEGER;
@@ -301,7 +301,7 @@ var GeoRasterLayer = L.GridLayer.extend({
             //if (debug_level >= 1) console.groupEnd();
 
             done(error, tile);
-        }.bind(this), 0);
+        }.bind(this))();
 
         // return the tile so it can be rendered on screen
         return tile;
