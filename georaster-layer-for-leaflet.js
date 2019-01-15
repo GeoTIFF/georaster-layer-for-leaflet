@@ -200,7 +200,7 @@ var GeoRasterLayer = L.GridLayer.extend({
                     } else {
                         if (rasters) {
                           for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
-                            tile_values[val_i].push(0);
+                            tile_values[val_i].push(no_data_value);
                           }
                         }
                     }
@@ -209,7 +209,7 @@ var GeoRasterLayer = L.GridLayer.extend({
                     if (rasters) {
                       for (let w = 0; w < number_of_rectangles_across; w++) {
                         for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
-                          tile_values[val_i].push(0);
+                          tile_values[val_i].push(no_data_value);
                         }
                       }
                     }
