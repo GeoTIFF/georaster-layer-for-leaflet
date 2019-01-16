@@ -17,8 +17,7 @@ var GeoRasterLayer = L.GridLayer.extend({
             let georaster = options.georaster;
             this.georaster = georaster;
 
-            this.scale = chroma.scale(['black', 'white']);
-            // this.scale = chroma.scale();
+            this.scale = chroma.scale();
 
             /*
                 Unpacking values for use later.
@@ -63,8 +62,7 @@ var GeoRasterLayer = L.GridLayer.extend({
 
         var error;
 
-        console.log('createTile: ', coords);
-        let debug_level = 2;
+        let debug_level = 0;
 
         if (debug_level >= 1) {
             var start_time = performance.now();
@@ -144,7 +142,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         let tileNwPoint = coords.scaleBy(tileSize);
 
         // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
-        (async function () {
+        setTimeout(async function () {
             let min_x = Number.MAX_SAFE_INTEGER;
             let max_x = 0;
             let min_y = Number.MAX_SAFE_INTEGER;
@@ -157,6 +155,16 @@ var GeoRasterLayer = L.GridLayer.extend({
               for (let samp_i = 0; samp_i < samples_per_pixel; samp_i++) {
                 tile_values.push([]);
               }
+            }
+
+            const push_value = function(value_array, values) {
+                for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
+                  let value = no_data_value;
+                  if (values) {
+                    value = values[val_i];
+                  }
+                  value_array[val_i].push(value)
+                }
             }
 
             for (let h = 0; h < number_of_rectangles_down; h++) {
@@ -180,9 +188,7 @@ var GeoRasterLayer = L.GridLayer.extend({
                         if (debug_level >= 1) time_started_reading_rasters = performance.now();
                         if (rasters) {
                           let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
-                          for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
-                            tile_values[val_i].push(values[val_i])
-                          }
+                          push_value(tile_values, values);
                         } else {
                           if (y_in_raster_pixels < min_y) {
                             min_y = y_in_raster_pixels;
@@ -199,18 +205,14 @@ var GeoRasterLayer = L.GridLayer.extend({
                         }
                     } else {
                         if (rasters) {
-                          for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
-                            tile_values[val_i].push(no_data_value);
-                          }
+                          push_value(tile_values);
                         }
                     }
                   }
                 } else {
                     if (rasters) {
                       for (let w = 0; w < number_of_rectangles_across; w++) {
-                        for (let val_i = 0; val_i < samples_per_pixel; val_i++) {
-                          tile_values[val_i].push(no_data_value);
-                        }
+                        push_value(tile_values);
                       }
                     }
                 }
@@ -261,9 +263,14 @@ var GeoRasterLayer = L.GridLayer.extend({
                           let number_of_values = values.length;
                           if (number_of_values == 1) {
                               let value = values[0];
-                              if (value != no_data_value) {
-                                  // color = scale( (values[0] - mins[0]) / ranges[0] ).hex();
-                                  color = scale( (values[0] - 10798) / (16110-10798)).hex();
+                              if (ranges) {
+                                if (value != no_data_value) {
+                                    color = scale( (values[0] - mins[0]) / ranges[0] ).hex();
+                                }
+                              } else {
+                                // TODO not sure what to do here - For COG, we don't know the min max of the full raster.
+                                // Currently I'm just hardcoding to a value that works for the LS8 raster I'm looking at.
+                                color = scale( (values[0] - 10798) / (16110-10798)).hex();
                               }
                           } else if (number_of_values == 2) {
                           } else if (number_of_values == 3) {
@@ -301,7 +308,7 @@ var GeoRasterLayer = L.GridLayer.extend({
             //if (debug_level >= 1) console.groupEnd();
 
             done(error, tile);
-        }.bind(this))();
+        }.bind(this), 0);
 
         // return the tile so it can be rendered on screen
         return tile;
