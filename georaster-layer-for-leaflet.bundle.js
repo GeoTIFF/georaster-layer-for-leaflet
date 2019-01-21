@@ -1,5 +1,7 @@
 "use strict";
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var chroma = require("chroma-js");
 
 var L = window.L;
@@ -74,25 +76,36 @@ var GeoRasterLayer = L.GridLayer.extend({
             var latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
             var latWest = map.unproject(latWestPoint, coords.z);
             var lat = latWest.lat;
+
             var y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
             var y_in_raster_pixels = Math.floor((ymax - lat) / pixelHeight);
 
             var latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
             var latLng = map.unproject(latLngPoint, coords.z);
             var lng = latLng.lng;
+
             var x_in_raster_pixels = Math.floor((lng - xmin) / pixelWidth);
 
             return [y_in_raster_pixels, x_in_raster_pixels];
         };
 
         var result = raster_coords_for_tile_coords(0, 0);
-        var min_y = result[0];
-        var min_x = result[1];
+
+        var _result = result,
+            _result2 = _slicedToArray(_result, 2),
+            min_y = _result2[0],
+            min_x = _result2[1];
+
         result = raster_coords_for_tile_coords(number_of_rectangles_down - 1, number_of_rectangles_across - 1);
-        var max_y = result[0];
-        var max_x = result[1];
+
+        var _result3 = result,
+            _result4 = _slicedToArray(_result3, 2),
+            max_y = _result4[0],
+            max_x = _result4[1];
 
         // careful not to flip min_y/max_y here
+
+
         var tile_values = await this.georaster.getValues(min_x, min_y, max_x, max_y, number_of_rectangles_across, number_of_rectangles_down);
 
         var tile_values_2d = tile_values.map(function (valuesInOneDimension) {
