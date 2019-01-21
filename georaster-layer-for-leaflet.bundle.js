@@ -38,6 +38,12 @@ var GeoRasterLayer = L.GridLayer.extend({
             this._xmax = georaster.xmax;
             this._ymax = georaster.ymax;
 
+            if (georaster.sourceType === 'url' && georaster.numberOfRasters === 1 && !options.pixelValueToColorFn) {
+                // For COG, we can't determine a data min max for color scaling,
+                // so pixelValueToColorFn is required.
+                throw "pixelValueToColorFn is a required option for single-band rasters initialized via URL";
+            }
+
             console.log("georaster.ymin:", georaster.ymin);
             var southWest = L.latLng(georaster.ymin, georaster.xmin);
             var northEast = L.latLng(georaster.ymax, georaster.xmax);
@@ -236,14 +242,8 @@ var GeoRasterLayer = L.GridLayer.extend({
                                     var number_of_values = values.length;
                                     if (number_of_values == 1) {
                                         var value = values[0];
-                                        if (ranges) {
-                                            if (value != no_data_value) {
-                                                color = scale((values[0] - mins[0]) / ranges[0]).hex();
-                                            }
-                                        } else {
-                                            // TODO not sure what to do here - For COG, we don't know the min max of the full raster.
-                                            // Currently I'm just hardcoding to a value that works for the LS8 raster I'm looking at.
-                                            color = scale((values[0] - 10798) / (16110 - 10798)).hex();
+                                        if (value != no_data_value) {
+                                            color = scale((values[0] - mins[0]) / ranges[0]).hex();
                                         }
                                     } else if (number_of_values == 2) {} else if (number_of_values == 3) {
                                         if (values[0] != no_data_value) {
