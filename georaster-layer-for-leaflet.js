@@ -36,6 +36,12 @@ var GeoRasterLayer = L.GridLayer.extend({
             this._xmax = georaster.xmax;
             this._ymax = georaster.ymax;
 
+            if (georaster.sourceType === 'url' && georaster.numberOfRasters === 1 && !options.pixelValueToColorFn) {
+              // For COG, we can't determine a data min max for color scaling,
+              // so pixelValueToColorFn is required.
+              throw "pixelValueToColorFn is a required option for single-band rasters initialized via URL";
+            }
+
             console.log("georaster.ymin:", georaster.ymin);
             let southWest = L.latLng(georaster.ymin, georaster.xmin);
             let northEast = L.latLng(georaster.ymax, georaster.xmax);
@@ -56,8 +62,56 @@ var GeoRasterLayer = L.GridLayer.extend({
             console.error("ERROR initializing GeoTIFFLayer", error);
         }
     },
+    
+    getRasters: async function(
+          map, tileNwPoint, height_of_rectangle_in_pixels, width_of_rectangle_in_pixels,
+          coords, pixelHeight, pixelWidth, number_of_rectangles_across, number_of_rectangles_down, ymax, xmin) {
+      // called if georaster was constructed from URL and we need to get
+      // data separately for each tile
+      // aka "COG mode"
 
-    createTile: function(coords) {
+      const raster_coords_for_tile_coords = function(h, w) {
+        let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
+        let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
+        let latWest = map.unproject(latWestPoint, coords.z);
+        let { lat } = latWest;
+        let y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
+        let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
+
+        let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
+        let latLng = map.unproject(latLngPoint, coords.z);
+        let { lng } = latLng;
+        let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
+
+        return [y_in_raster_pixels, x_in_raster_pixels];
+      }
+
+      let result = raster_coords_for_tile_coords(0, 0);
+      let [ min_y, min_x ] = result;
+      result = raster_coords_for_tile_coords(number_of_rectangles_down - 1, number_of_rectangles_across - 1);
+      let [ max_y, max_x ] = result;
+
+      // careful not to flip min_y/max_y here
+      let tile_values = await this.georaster.getValues(min_x, min_y, max_x, max_y, number_of_rectangles_across, number_of_rectangles_down);
+
+      let tile_values_2d = tile_values.map(valuesInOneDimension => {
+        const valuesInTwoDimensions = [];
+        const width = number_of_rectangles_across;
+        const height = number_of_rectangles_down;
+        for (let y = 0; y < height; y++) {
+          const start = y * width;
+          const end = start + width;
+          valuesInTwoDimensions.push(valuesInOneDimension.slice(start, end));
+        }
+        return valuesInTwoDimensions;
+      });
+
+      return tile_values_2d;
+    },
+
+    createTile: function(coords, done) {
+
+        var error;
 
         let debug_level = 0;
 
@@ -138,71 +192,91 @@ var GeoRasterLayer = L.GridLayer.extend({
         let tileSize = this.getTileSize();
         let tileNwPoint = coords.scaleBy(tileSize);
 
-        for (let h = 0; h < number_of_rectangles_down; h++) {
-            let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
-            let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
-            let latWest = map.unproject(latWestPoint, coords.z);
-            let lat = latWest.lat;
-            //if (debug_level >= 2) console.log("lat:", lat);
-            if (lat > ymin && lat < ymax) {
-              let y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
-              let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
-              for (let w = 0; w < number_of_rectangles_across; w++) {
-                let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
-                let latLng = map.unproject(latLngPoint, coords.z);
-                let lng = latLng.lng;
-                //if (debug_level >= 2) console.log("lng:", lng);
-                if (lng > xmin && lng < xmax) {
-                    //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
-                    let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
-
-                    if (debug_level >= 1) time_started_reading_rasters = performance.now();
-                    let values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
-                    if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
-                    let color = null;
-                    if(this.options.pixelValueToColorFn) {
-                      color = this.options.pixelValueToColorFn(values[0]);
-                    } else {
-                      let number_of_values = values.length;
-                      if (number_of_values == 1) {
-                          let value = values[0];
-                          if (value != no_data_value) {
-                              color = scale( (values[0] - mins[0]) / ranges[0] ).hex();
-                          }
-                      } else if (number_of_values == 2) {
-                      } else if (number_of_values == 3) {
-                          if (values[0] != no_data_value) {
-                              color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
-                          }
-                      }
-                    }
-                    //let colors = ["red", "green", "blue", "pink", "purple", "orange"];
-                    //let color = colors[Math.round(colors.length * Math.random())];
-                    //context.fillStyle = this.getColor(color);
-                    if (color) {
-                        context.fillStyle = color;
-                        if (debug_level >= 1) time_started_filling_rect = performance.now();
-                        context.fillRect(Math.round(w * width_of_rectangle_in_pixels), y_in_tile_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int);
-                        if (debug_level >= 1) duration_filling_rects += performance.now() - time_started_filling_rect;
-                    }
-                    //if (debug_level >= 2) console.log("filling:", [w * width_of_rectangle_in_pixels, rect_y_in_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int]);
-                    //if (debug_level >= 2) console.log("with color:", color);
-                    //if (debug_level >= 2) console.log("with context:", context);
-                } else {
-                    //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#FF0000"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
-                }
-              }
+        // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
+        setTimeout(async function () {
+            let tile_rasters = null;
+            if (!rasters) {
+              tile_rasters = await this.getRasters(
+                map, tileNwPoint, height_of_rectangle_in_pixels, width_of_rectangle_in_pixels, coords, pixelHeight, pixelWidth,
+                number_of_rectangles_across, number_of_rectangles_down, ymax, xmin);
             }
-        }
+
+            for (let h = 0; h < number_of_rectangles_down; h++) {
+                let y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
+                let latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
+                let latWest = map.unproject(latWestPoint, coords.z);
+                let lat = latWest.lat;
+                //if (debug_level >= 2) console.log("lat:", lat);
+                if (lat > ymin && lat < ymax) {
+                  let y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
+                  let y_in_raster_pixels = Math.floor( (ymax - lat) / pixelHeight );
+                  for (let w = 0; w < number_of_rectangles_across; w++) {
+                    let latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
+                    let latLng = map.unproject(latLngPoint, coords.z);
+                    let lng = latLng.lng;
+                    //if (debug_level >= 2) console.log("lng:", lng);
+                    if (lng > xmin && lng < xmax) {
+                        //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
+                        let x_in_raster_pixels = Math.floor( (lng - xmin) / pixelWidth );
+
+                        if (debug_level >= 1) time_started_reading_rasters = performance.now();
+                        let values = null;
+                        if (tile_rasters) {
+                          // get value from array specific to this tile
+                          values = tile_rasters.map(raster => raster[h][w]);
+                        } else {
+                          // get value from array with data for entire raster
+                          values = rasters.map(raster => raster[y_in_raster_pixels][x_in_raster_pixels]);
+                        }
+                        if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
+
+                        let color = null;
+                        if(this.options.pixelValueToColorFn) {
+                          color = this.options.pixelValueToColorFn(values[0]);
+                        } else {
+                          let number_of_values = values.length;
+                          if (number_of_values == 1) {
+                              let value = values[0];
+                              if (value != no_data_value) {
+                                  color = scale( (values[0] - mins[0]) / ranges[0] ).hex();
+                              }
+                          } else if (number_of_values == 2) {
+                          } else if (number_of_values == 3) {
+                              if (values[0] != no_data_value) {
+                                  color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
+                              }
+                          }
+                        }
+                        //let colors = ["red", "green", "blue", "pink", "purple", "orange"];
+                        //let color = colors[Math.round(colors.length * Math.random())];
+                        //context.fillStyle = this.getColor(color);
+                        if (color) {
+                            context.fillStyle = color;
+                            if (debug_level >= 1) time_started_filling_rect = performance.now();
+                            context.fillRect(Math.round(w * width_of_rectangle_in_pixels), y_in_tile_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int);
+                            if (debug_level >= 1) duration_filling_rects += performance.now() - time_started_filling_rect;
+                        }
+                        //if (debug_level >= 2) console.log("filling:", [w * width_of_rectangle_in_pixels, rect_y_in_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int]);
+                        //if (debug_level >= 2) console.log("with color:", color);
+                        //if (debug_level >= 2) console.log("with context:", context);
+                    } else {
+                        //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#FF0000"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
+                    }
+                  }
+                }
+            }
 
 
-        if (debug_level >= 1) {
-            let duration = performance.now() - start_time;
-            console.log("creating tile took ", duration, "milliseconds");
-            console.log("took", duration_reading_rasters, "milliseconds to read rasters, which is ", Math.round(duration_reading_rasters / duration * 100), "percentage of the total time");
-            console.log("took", duration_filling_rects, "milliseconds to fill rects, which is ", Math.round(duration_filling_rects / duration * 100), "percentage of the total time");
-        }
-        //if (debug_level >= 1) console.groupEnd();
+            if (debug_level >= 1) {
+                let duration = performance.now() - start_time;
+                console.log("creating tile took ", duration, "milliseconds");
+                console.log("took", duration_reading_rasters, "milliseconds to read rasters, which is ", Math.round(duration_reading_rasters / duration * 100), "percentage of the total time");
+                console.log("took", duration_filling_rects, "milliseconds to fill rects, which is ", Math.round(duration_filling_rects / duration * 100), "percentage of the total time");
+            }
+            //if (debug_level >= 1) console.groupEnd();
+
+            done(error, tile);
+        }.bind(this), 0);
 
         // return the tile so it can be rendered on screen
         return tile;
