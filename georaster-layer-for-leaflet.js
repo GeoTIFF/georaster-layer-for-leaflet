@@ -62,7 +62,7 @@ var GeoRasterLayer = L.GridLayer.extend({
             console.error("ERROR initializing GeoTIFFLayer", error);
         }
     },
-    
+
     getRasters: async function(
           map, tileNwPoint, height_of_rectangle_in_pixels, width_of_rectangle_in_pixels,
           coords, pixelHeight, pixelWidth, number_of_rectangles_across, number_of_rectangles_down, ymax, xmin) {
@@ -87,12 +87,20 @@ var GeoRasterLayer = L.GridLayer.extend({
       }
 
       let result = raster_coords_for_tile_coords(0, 0);
-      let [ min_y, min_x ] = result;
+      let [ top, left ] = result;
       result = raster_coords_for_tile_coords(number_of_rectangles_down - 1, number_of_rectangles_across - 1);
-      let [ max_y, max_x ] = result;
+      let [ bottom, right ] = result;
 
       // careful not to flip min_y/max_y here
-      let tile_values = await this.georaster.getValues(min_x, min_y, max_x, max_y, number_of_rectangles_across, number_of_rectangles_down);
+      const options = {
+        bottom,
+        height: number_of_rectangles_down,
+        left,
+        right,
+        top,
+        width: number_of_rectangles_across
+      };
+      let tile_values = await this.georaster.getValues(options);
 
       let tile_values_2d = tile_values.map(valuesInOneDimension => {
         const valuesInTwoDimensions = [];
