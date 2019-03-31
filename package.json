@@ -6,7 +6,8 @@
   "scripts": {
     "babel": "babel --presets es2015 georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "browserify georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.browserify.min.js",
-    "build": "npm run babel && npm run browserify"
+    "build": "npm run babel && npm run browserify",
+    "test": "HOST=0.0.0.0 http-server"
   },
   "repository": {
     "type": "git",

@@ -93,20 +93,28 @@ var GeoRasterLayer = L.GridLayer.extend({
 
         var _result = result,
             _result2 = _slicedToArray(_result, 2),
-            min_y = _result2[0],
-            min_x = _result2[1];
+            top = _result2[0],
+            left = _result2[1];
 
         result = raster_coords_for_tile_coords(number_of_rectangles_down - 1, number_of_rectangles_across - 1);
 
         var _result3 = result,
             _result4 = _slicedToArray(_result3, 2),
-            max_y = _result4[0],
-            max_x = _result4[1];
+            bottom = _result4[0],
+            right = _result4[1];
 
         // careful not to flip min_y/max_y here
 
 
-        var tile_values = await this.georaster.getValues(min_x, min_y, max_x, max_y, number_of_rectangles_across, number_of_rectangles_down);
+        var options = {
+            bottom: bottom,
+            height: number_of_rectangles_down,
+            left: left,
+            right: right,
+            top: top,
+            width: number_of_rectangles_across
+        };
+        var tile_values = await this.georaster.getValues(options);
 
         var tile_values_2d = tile_values.map(function (valuesInOneDimension) {
             var valuesInTwoDimensions = [];
