@@ -77,12 +77,12 @@ var GeoRasterLayer = L.GridLayer.extend({
       This function takes in coordinates in the rendered image tile and
       returns the y and x values in the original raster
     */
-    var raster_coords_for_tile_coords = function raster_coords_for_tile_coords(h, w) {
+    var rasterCoordsForTileCoords = function rasterCoordsForTileCoords(h, w) {
 
-      var x_center_in_map_pixels = tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
+      var xCenterInMapPixels = tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
       var yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
-      var mapPoint = L.point(x_center_in_map_pixels, yCenterInMapPixels);
+      var mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
       console.log('mapPoint:', mapPoint);
 
       var _map$unproject = _this._map.unproject(mapPoint, coords.z),
@@ -111,8 +111,8 @@ var GeoRasterLayer = L.GridLayer.extend({
     };
 
     // careful not to flip min_y/max_y here
-    var topLeft = raster_coords_for_tile_coords(0, 0);
-    var bottomRight = raster_coords_for_tile_coords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
+    var topLeft = rasterCoordsForTileCoords(0, 0);
+    var bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
 
     var getValuesOptions = {
       bottom: bottomRight.y,
@@ -127,19 +127,17 @@ var GeoRasterLayer = L.GridLayer.extend({
   },
 
   createTile: function createTile(coords, done) {
-    var error;
+    var _this2 = this;
+
+    var error = void 0;
 
     // Unpacking values for increased speed
     var georaster = this.georaster;
     var pixelHeight = georaster.pixelHeight,
         pixelWidth = georaster.pixelWidth;
-    var mins = georaster.mins,
-        noDataValue = georaster.noDataValue,
-        ranges = georaster.ranges;
     var xmin = georaster.xmin,
         ymax = georaster.ymax;
-    var rasters = this.rasters,
-        scale = this.scale;
+    var rasters = this.rasters;
 
     // these values are used so we don't try to sample outside of the raster
 
@@ -201,8 +199,6 @@ var GeoRasterLayer = L.GridLayer.extend({
 
     // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
     setTimeout(async function () {
-      var _this2 = this;
-
       var tileRasters = null;
       if (!rasters) {
         throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
@@ -276,7 +272,7 @@ var GeoRasterLayer = L.GridLayer.extend({
       }
 
       done(error, tile);
-    }.bind(this), 0);
+    }, 0);
 
     // return the tile so it can be rendered on screen
     return tile;
@@ -319,14 +315,14 @@ var GeoRasterLayer = L.GridLayer.extend({
         ymin = georaster.ymin,
         ymax = georaster.ymax;
 
-    if (this.debugLevel >= 1) console.log("georaster projection is", projection);
+    if (this.debugLevel >= 1) console.log('georaster projection is', projection);
     if (projection === 4326) {
-      if (this.debugLevel >= 1) console.log("georaster projection is in 4326");
+      if (this.debugLevel >= 1) console.log('georaster projection is in 4326');
       var minLatWest = L.latLng(ymin, xmin);
       var maxLatEast = L.latLng(ymax, xmax);
       this._bounds = L.latLngBounds(minLatWest, maxLatEast);
     } else if (isUTM(projection)) {
-      if (this.debugLevel >= 1) console.log("georaster projection is UTM");
+      if (this.debugLevel >= 1) console.log('georaster projection is UTM');
       var bottomLeft = this.projector.forward({ x: xmin, y: ymin });
       var _minLatWest = L.latLng(bottomLeft.y, bottomLeft.x);
       var topRight = this.projector.forward({ x: xmax, y: ymax });
@@ -345,7 +341,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         throw 'proj4 must be found in the global scope in order to load a raster that uses a UTM projection';
       }
       this.projector = proj4(getProj4String(georaster.projection), 'EPSG:4326');
-      if (this.debugLevel >= 1) console.log("projector set");
+      if (this.debugLevel >= 1) console.log('projector set');
     }
   }
 
