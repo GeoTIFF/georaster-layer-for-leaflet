@@ -54,15 +54,15 @@ fetch(url_to_geotiff_file)
 
           Just make sure to include the georaster option!
 
-          Optionally set the pixelValueToColorFn function option to customize
-          how a pixel value is translated to a color.
+          Optionally set the pixelValuesToColorFn function option to customize
+          how values for a pixel are translated to a color.
 
           http://leafletjs.com/reference-1.2.0.html#gridlayer
       */
       var layer = new GeoRasterLayer({
           georaster: georaster,
           opacity: 0.7,
-          pixelValueToColorFn: value => value === 42 ? '#ffffff' : '#000000',
+          pixelValuesToColorFn: values => values[0] === 42 ? '#ffffff' : '#000000',
           resolution: 64 // optional parameter for adjusting display resolution
       });
       layer.addTo(map);
