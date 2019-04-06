@@ -1,235 +1,357 @@
-"use strict";
+'use strict';
 
-var chroma = require("chroma-js");
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var L = window.L;
+/* global L, proj4 */
+var _require = require('./utils/utm.js'),
+    isUTM = _require.isUTM,
+    getProj4String = _require.getProj4String;
+
+var chroma = require('chroma-js');
 
 var GeoRasterLayer = L.GridLayer.extend({
 
-    initialize: function initialize(options) {
-        try {
-            console.log("starting GeoRasterLayer.initialize with", options);
+  initialize: function initialize(options) {
+    try {
 
-            if (!options.keepBuffer) options.keepBuffer = 25;
+      if (!options.debugLevel) options.debugLevel = 1;
+      if (!options.keepBuffer) options.keepBuffer = 25;
+      if (!options.resolution) options.resolution = Math.pow(2, 5);
+      if (options.updateWhenZooming === undefined) options.updateWhenZooming = false;
 
-            if (!options.resolution) options.resolution = Math.pow(2, 5);
+      this.debugLevel = options.debugLevel;
+      if (this.debugLevel >= 1) console.log('georaster:', options);
 
-            if (options.updateWhenZooming === undefined) options.updateWhenZooming = false;
+      var georaster = options.georaster;
+      this.georaster = georaster;
+      this.scale = chroma.scale();
 
-            var georaster = options.georaster;
-            this.georaster = georaster;
+      /*
+          Unpacking values for use later.
+          We do this in order to increase speed.
+      */
+      this.rasters = georaster.values;
+      this.projection = georaster.projection;
 
-            this.scale = chroma.scale();
+      this.initProjector(georaster);
+      this.initBounds(georaster);
+      options.bounds = this._bounds;
+      L.setOptions(this, options);
 
-            /*
-                Unpacking values for use later.
-                We do this in order to increase speed.
-            */
-            this._maxs = georaster.maxs;
-            this._mins = georaster.mins;
-            this._ranges = georaster.ranges;
-            this._no_data_value = georaster.noDataValue;
-            this._pixelWidth = georaster.pixelWidth;
-            this._pixelHeight = georaster.pixelHeight;
-            this._rasters = georaster.values;
-            this._tiff_width = georaster.width;
-            this._xmin = georaster.xmin;
-            this._ymin = georaster.ymin;
-            this._xmax = georaster.xmax;
-            this._ymax = georaster.ymax;
+      /*
+          Caching the constant tile size, so we don't recalculate everytime we
+          create a new tile
+      */
+      var tileSize = this.getTileSize();
+      this._tileHeight = tileSize.y;
+      this._tileWidth = tileSize.x;
 
-            console.log("georaster.ymin:", georaster.ymin);
-            var southWest = L.latLng(georaster.ymin, georaster.xmin);
-            var northEast = L.latLng(georaster.ymax, georaster.xmax);
-            this._bounds = L.latLngBounds(southWest, northEast);
-            console.log("this._bounds:", this._bounds);
-            options.bounds = this._bounds;
-            L.setOptions(this, options);
-
-            /*
-                Caching the constant tile size, so we don't recalculate everytime we
-                create a new tile
-            */
-            var tileSize = this.getTileSize();
-            this._tile_height = tileSize.y;
-            this._tile_width = tileSize.x;
-        } catch (error) {
-            console.error("ERROR initializing GeoTIFFLayer", error);
-        }
-    },
-
-    createTile: function createTile(coords) {
-        var _this = this;
-
-        var debug_level = 0;
-
-        if (debug_level >= 1) {
-            var start_time = performance.now();
-            var duration_reading_rasters = 0;
-            var time_started_reading_rasters;
-            var time_started_filling_rect;
-            var duration_filling_rects = 0;
-        }
-
-        /*
-            Unpacking values for use later.
-            We do this in order to increase speed.
-        */
-        var maxs = this._maxs;
-        var mins = this._mins;
-        var ranges = this._ranges;
-        var no_data_value = this._no_data_value;
-        var pixelWidth = this._pixelWidth;
-        var pixelHeight = this._pixelHeight;
-        var rasters = this._rasters;
-        var scale = this.scale;
-        var tiff_width = this._tiff_width;
-        var xmin = this._xmin;
-        var ymin = this._ymin;
-        var xmax = this._xmax;
-        var ymax = this._ymax;
-
-        //if (debug_level >= 1) console.group();
-
-        //if (debug_level >= 1) console.log("starting createTile with coords:", coords);
-
-
-        // create a <canvas> element for drawing
-        var tile = L.DomUtil.create('canvas', 'leaflet-tile');
-        tile.height = this._tile_height;
-        tile.width = this._tile_width;
-
-        // get a canvas context and draw something on it using coords.x, coords.y and coords.z
-        var context = tile.getContext('2d');
-
-        var bounds = this._tileCoordsToBounds(coords);
-        //if (debug_level >= 1) console.log("bounds:", bounds);
-
-        var xmin_of_tile = bounds.getWest();
-        var xmax_of_tile = bounds.getEast();
-        var ymin_of_tile = bounds.getSouth();
-        var ymax_of_tile = bounds.getNorth();
-        //if (debug_level >= 1) console.log("ymax_of_tile:", ymax_of_tile);
-
-        var resolution = this.options.resolution;
-
-        var raster_pixels_across = Math.ceil((xmax_of_tile - xmin_of_tile) / pixelWidth);
-        var raster_pixels_down = Math.ceil((ymax_of_tile - ymin_of_tile) / pixelHeight);
-        var number_of_rectangles_across = Math.min(resolution, raster_pixels_across);
-        var number_of_rectangles_down = Math.min(resolution, raster_pixels_down);
-
-        var height_of_rectangle_in_pixels = this._tile_height / number_of_rectangles_down;
-        var height_of_rectangle_in_pixels_int = Math.ceil(height_of_rectangle_in_pixels);
-        //if (debug_level >= 1) console.log("height_of_rectangle_in_pixels:", height_of_rectangle_in_pixels);
-        var width_of_rectangle_in_pixels = this._tile_width / number_of_rectangles_across;
-        var width_of_rectangle_in_pixels_int = Math.ceil(width_of_rectangle_in_pixels);
-        //if (debug_level >= 1) console.log("width_of_rectangle:", width_of_rectangle_in_pixels);
-
-        var height_of_rectangle_in_degrees = (ymax_of_tile - ymin_of_tile) / number_of_rectangles_down;
-        //if (debug_level >= 1) console.log("height_of_rectangle_in_degrees:", height_of_rectangle_in_degrees);
-        var width_of_rectangle_in_degrees = (xmax_of_tile - xmin_of_tile) / number_of_rectangles_across;
-        //if (debug_level >= 1) console.log("width_of_rectangle_in_degrees:", width_of_rectangle_in_degrees);
-
-        //if (debug_level >= 1) console.log("ymax of raster:", ymax);
-
-        var number_of_pixels_per_rectangle = this._tile_width / 8;
-
-        var map = this._map;
-        var tileSize = this.getTileSize();
-        var tileNwPoint = coords.scaleBy(tileSize);
-
-        for (var h = 0; h < number_of_rectangles_down; h++) {
-            var y_center_in_map_pixels = tileNwPoint.y + (h + 0.5) * height_of_rectangle_in_pixels;
-            var latWestPoint = L.point(tileNwPoint.x, y_center_in_map_pixels);
-            var latWest = map.unproject(latWestPoint, coords.z);
-            var lat = latWest.lat;
-            //if (debug_level >= 2) console.log("lat:", lat);
-            if (lat > ymin && lat < ymax) {
-                (function () {
-                    var y_in_tile_pixels = Math.round(h * height_of_rectangle_in_pixels);
-                    var y_in_raster_pixels = Math.floor((ymax - lat) / pixelHeight);
-                    for (var w = 0; w < number_of_rectangles_across; w++) {
-                        var latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * width_of_rectangle_in_pixels, y_center_in_map_pixels);
-                        var latLng = map.unproject(latLngPoint, coords.z);
-                        var lng = latLng.lng;
-                        //if (debug_level >= 2) console.log("lng:", lng);
-                        if (lng > xmin && lng < xmax) {
-                            (function () {
-                                //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#00FF00"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
-                                var x_in_raster_pixels = Math.floor((lng - xmin) / pixelWidth);
-
-                                if (debug_level >= 1) time_started_reading_rasters = performance.now();
-                                var values = rasters.map(function (raster) {
-                                    return raster[y_in_raster_pixels][x_in_raster_pixels];
-                                });
-                                if (debug_level >= 1) duration_reading_rasters += performance.now() - time_started_reading_rasters;
-                                var color = null;
-                                if (_this.options.pixelValueToColorFn) {
-                                    color = _this.options.pixelValueToColorFn(values[0]);
-                                } else {
-                                    var number_of_values = values.length;
-                                    if (number_of_values == 1) {
-                                        var value = values[0];
-                                        if (value != no_data_value) {
-                                            color = scale((values[0] - mins[0]) / ranges[0]).hex();
-                                        }
-                                    } else if (number_of_values == 2) {} else if (number_of_values == 3) {
-                                        if (values[0] != no_data_value) {
-                                            color = "rgb(" + values[0] + "," + values[1] + "," + values[2] + ")";
-                                        }
-                                    }
-                                }
-                                //let colors = ["red", "green", "blue", "pink", "purple", "orange"];
-                                //let color = colors[Math.round(colors.length * Math.random())];
-                                //context.fillStyle = this.getColor(color);
-                                if (color) {
-                                    context.fillStyle = color;
-                                    if (debug_level >= 1) time_started_filling_rect = performance.now();
-                                    context.fillRect(Math.round(w * width_of_rectangle_in_pixels), y_in_tile_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int);
-                                    if (debug_level >= 1) duration_filling_rects += performance.now() - time_started_filling_rect;
-                                }
-                                //if (debug_level >= 2) console.log("filling:", [w * width_of_rectangle_in_pixels, rect_y_in_pixels, width_of_rectangle_in_pixels_int, height_of_rectangle_in_pixels_int]);
-                                //if (debug_level >= 2) console.log("with color:", color);
-                                //if (debug_level >= 2) console.log("with context:", context);
-                            })();
-                        } else {
-                                //if (debug_level >= 2) L.circleMarker([lat, lng], {color: "#FF0000"}).bindTooltip(h+","+w).addTo(this._map).openTooltip();
-                            }
-                    }
-                })();
-            }
-        }
-
-        if (debug_level >= 1) {
-            var duration = performance.now() - start_time;
-            console.log("creating tile took ", duration, "milliseconds");
-            console.log("took", duration_reading_rasters, "milliseconds to read rasters, which is ", Math.round(duration_reading_rasters / duration * 100), "percentage of the total time");
-            console.log("took", duration_filling_rects, "milliseconds to fill rects, which is ", Math.round(duration_filling_rects / duration * 100), "percentage of the total time");
-        }
-        //if (debug_level >= 1) console.groupEnd();
-
-        // return the tile so it can be rendered on screen
-        return tile;
-    },
-
-    // method from https://github.com/Leaflet/Leaflet/blob/bb1d94ac7f2716852213dd11563d89855f8d6bb1/src/layer/ImageOverlay.js
-    getBounds: function getBounds() {
-        return this._bounds;
-    },
-
-    getColor: function getColor(name) {
-        var d = document.createElement("div");
-        d.style.color = name;
-        document.body.appendChild(d);
-        return window.getComputedStyle(d).color;
+      if (georaster.sourceType === 'url' && georaster.numberOfRasters === 1 && !options.pixelValuesToColorFn) {
+        // For COG, we can't determine a data min max for color scaling,
+        // so pixelValuesToColorFn is required.
+        throw 'pixelValuesToColorFn is a required option for single-band rasters initialized via URL';
+      }
+    } catch (error) {
+      console.error('ERROR initializing GeoTIFFLayer', error);
     }
+  },
+
+  getRasters: function getRasters(options) {
+    var _this = this;
+
+    var tileNwPoint = options.tileNwPoint,
+        heightOfSampleInScreenPixels = options.heightOfSampleInScreenPixels,
+        widthOfSampleInScreenPixels = options.widthOfSampleInScreenPixels,
+        coords = options.coords,
+        numberOfSamplesAcross = options.numberOfSamplesAcross,
+        numberOfSamplesDown = options.numberOfSamplesDown,
+        ymax = options.ymax,
+        xmin = options.xmin;
+
+    console.log('starting getRasters with options:', options);
+    // called if georaster was constructed from URL and we need to get
+    // data separately for each tile
+    // aka 'COG mode'
+
+    /*
+      This function takes in coordinates in the rendered image tile and
+      returns the y and x values in the original raster
+    */
+    var rasterCoordsForTileCoords = function rasterCoordsForTileCoords(h, w) {
+
+      var xCenterInMapPixels = tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
+      var yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
+
+      var mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
+      console.log('mapPoint:', mapPoint);
+
+      var _map$unproject = _this._map.unproject(mapPoint, coords.z),
+          lat = _map$unproject.lat,
+          lng = _map$unproject.lng;
+
+      if (_this.projection === 4326) {
+        return {
+          y: Math.floor((ymax - lat) / _this._pixelHeight),
+          x: Math.floor((lng - xmin) / _this._pixelWidth)
+        };
+      } else if (_this.projector) {
+        /* source raster doesn't use latitude and longitude,
+           so need to reproject point from lat/long to projection of raster
+        */
+        var _projector$inverse = _this.projector.inverse([lng, lat]),
+            _projector$inverse2 = _slicedToArray(_projector$inverse, 2),
+            x = _projector$inverse2[0],
+            y = _projector$inverse2[1];
+
+        return {
+          y: Math.floor((ymax - y) / _this._pixelHeight),
+          x: Math.floor((x - xmin) / _this._pixelWidth)
+        };
+      }
+    };
+
+    // careful not to flip min_y/max_y here
+    var topLeft = rasterCoordsForTileCoords(0, 0);
+    var bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
+
+    var getValuesOptions = {
+      bottom: bottomRight.y,
+      height: numberOfSamplesDown,
+      left: topLeft.x,
+      right: bottomRight.x,
+      top: topLeft.y,
+      width: numberOfSamplesAcross
+    };
+    console.log('getValuesOptions:', getValuesOptions);
+    return this.georaster.getValues(getValuesOptions);
+  },
+
+  createTile: function createTile(coords, done) {
+    var _this2 = this;
+
+    var error = void 0;
+
+    // Unpacking values for increased speed
+    var georaster = this.georaster;
+    var pixelHeight = georaster.pixelHeight,
+        pixelWidth = georaster.pixelWidth;
+    var xmin = georaster.xmin,
+        ymax = georaster.ymax;
+    var rasters = this.rasters;
+
+    // these values are used so we don't try to sample outside of the raster
+
+    var minLng = this._bounds.getWest();
+    var maxLng = this._bounds.getEast();
+    var maxLat = this._bounds.getNorth();
+    var minLat = this._bounds.getSouth();
+
+    /* This tile is the square piece of the Leaflet map that we draw on */
+    var tile = L.DomUtil.create('canvas', 'leaflet-tile');
+    tile.height = this._tileHeight;
+    tile.width = this._tileWidth;
+    var context = tile.getContext('2d');
+
+    var bounds = this._tileCoordsToBounds(coords);
+
+    var minLngOfTile = bounds.getWest();
+    var maxLngOfTile = bounds.getEast();
+    var minLatOfTile = bounds.getSouth();
+    var maxLatOfTile = bounds.getNorth();
+
+    var rasterPixelsAcross = void 0,
+        rasterPixelsDown = void 0;
+    if (this.projection === 4326) {
+      // width of the Leaflet tile in number of pixels from original raster
+      rasterPixelsAcross = Math.ceil((maxLngOfTile - minLngOfTile) / pixelWidth);
+      rasterPixelsDown = Math.ceil((maxLatOfTile - minLatOfTile) / pixelHeight);
+    } else if (this.projector) {
+
+      // convert extent of Leaflet tile to projection of the georaster
+      var topLeft = this.projector.inverse({ x: minLngOfTile, y: maxLatOfTile });
+      var topRight = this.projector.inverse({ x: maxLngOfTile, y: maxLatOfTile });
+      var bottomLeft = this.projector.inverse({ x: minLngOfTile, y: minLatOfTile });
+      var bottomRight = this.projector.inverse({ x: maxLngOfTile, y: minLatOfTile });
+
+      rasterPixelsAcross = Math.ceil(Math.max(topRight.x - topLeft.x, bottomRight.x - bottomLeft.x) / pixelWidth);
+      rasterPixelsDown = Math.ceil(Math.max(topLeft.y - bottomLeft.y, topRight.y - bottomRight.y) / pixelHeight);
+    }
+
+    var resolution = this.options.resolution;
+
+    // prevent sampling more times than number of pixels to display
+
+    var numberOfSamplesAcross = Math.min(resolution, rasterPixelsAcross);
+    var numberOfSamplesDown = Math.min(resolution, rasterPixelsDown);
+
+    // set how large to display each sample in screen pixels
+    var heightOfSampleInScreenPixels = this._tileHeight / numberOfSamplesDown;
+    var heightOfSampleInScreenPixelsInt = Math.ceil(heightOfSampleInScreenPixels);
+    var widthOfSampleInScreenPixels = this._tileWidth / numberOfSamplesAcross;
+    var widthOfSampleInScreenPixelsInt = Math.ceil(widthOfSampleInScreenPixels);
+
+    var map = this._map;
+    var tileSize = this.getTileSize();
+
+    // this converts tile coordinates (how many tiles down and right)
+    // to pixels from left and top of tile pane
+    var tileNwPoint = coords.scaleBy(tileSize);
+
+    // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
+    setTimeout(async function () {
+      var tileRasters = null;
+      if (!rasters) {
+        throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
+        /*
+        tileRasters = await this.getRasters({
+          tileNwPoint, heightOfSampleInScreenPixels,
+          widthOfSampleInScreenPixels, coords, pixelHeight, pixelWidth,
+          numberOfSamplesAcross, numberOfSamplesDown, ymax, xmin});
+        */
+      }
+
+      var _loop = function _loop(h) {
+        var yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
+        var latWestPoint = L.point(tileNwPoint.x, yCenterInMapPixels);
+
+        var _map$unproject2 = map.unproject(latWestPoint, coords.z),
+            lat = _map$unproject2.lat;
+
+        if (lat > minLat && lat < maxLat) {
+          (function () {
+            var yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
+            var yInRasterPixels = _this2.projection === 4326 ? Math.floor((maxLat - lat) / pixelHeight) : null;
+
+            var _loop2 = function _loop2(w) {
+              var latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
+
+              var _map$unproject3 = map.unproject(latLngPoint, coords.z),
+                  lng = _map$unproject3.lng;
+
+              if (lng > minLng && lng < maxLng) {
+                var xInRasterPixels = void 0;
+                if (_this2.projection === 4326) {
+                  xInRasterPixels = Math.floor((lng - minLng) / pixelWidth);
+                } else if (_this2.projector) {
+                  var inverted = _this2.projector.inverse({ x: lng, y: lat });
+                  var xInSrc = inverted.x;
+                  var yInSrc = inverted.y;
+                  yInRasterPixels = Math.floor((ymax - yInSrc) / pixelHeight);
+                  xInRasterPixels = Math.floor((xInSrc - xmin) / pixelWidth);
+                }
+
+                var values = null;
+                if (tileRasters) {
+                  // get value from array specific to this tile
+                  values = tileRasters.map(function (raster) {
+                    return raster[h][w];
+                  });
+                } else {
+                  // get value from array with data for entire raster
+                  values = rasters.map(function (raster) {
+                    return raster[yInRasterPixels][xInRasterPixels];
+                  });
+                }
+                var color = _this2.getColor(values);
+                if (color) {
+                  context.fillStyle = color;
+                  context.fillRect(Math.round(w * widthOfSampleInScreenPixels), yInTilePixels, widthOfSampleInScreenPixelsInt, heightOfSampleInScreenPixelsInt);
+                }
+              }
+            };
+
+            for (var w = 0; w < numberOfSamplesAcross; w++) {
+              _loop2(w);
+            }
+          })();
+        }
+      };
+
+      for (var h = 0; h < numberOfSamplesDown; h++) {
+        _loop(h);
+      }
+
+      done(error, tile);
+    }, 0);
+
+    // return the tile so it can be rendered on screen
+    return tile;
+  },
+
+  // method from https://github.com/Leaflet/Leaflet/blob/bb1d94ac7f2716852213dd11563d89855f8d6bb1/src/layer/ImageOverlay.js
+  getBounds: function getBounds() {
+    return this._bounds;
+  },
+
+  getColor: function getColor(values) {
+    if (this.options.pixelValuesToColorFn) {
+      return this.options.pixelValuesToColorFn(values);
+    } else {
+      var _georaster = this.georaster,
+          mins = _georaster.mins,
+          noDataValue = _georaster.noDataValue,
+          ranges = _georaster.ranges;
+
+      var numberOfValues = values.length;
+      var haveDataForAllBands = values.every(function (value) {
+        return value !== undefined && value !== noDataValue;
+      });
+      if (haveDataForAllBands) {
+        if (numberOfValues == 1) {
+          return this.scale((values[0] - mins[0]) / ranges[0]).hex();
+        } else if (numberOfValues === 2) {
+          return 'rgb(' + values[0] + ',' + values[1] + ',0)';
+        } else if (numberOfValues === 3) {
+          return 'rgb(' + values[0] + ',' + values[1] + ',' + values[2] + ')';
+        }
+      }
+    }
+  },
+
+  initBounds: function initBounds(georaster) {
+    var projection = georaster.projection,
+        xmin = georaster.xmin,
+        xmax = georaster.xmax,
+        ymin = georaster.ymin,
+        ymax = georaster.ymax;
+
+    if (this.debugLevel >= 1) console.log('georaster projection is', projection);
+    if (projection === 4326) {
+      if (this.debugLevel >= 1) console.log('georaster projection is in 4326');
+      var minLatWest = L.latLng(ymin, xmin);
+      var maxLatEast = L.latLng(ymax, xmax);
+      this._bounds = L.latLngBounds(minLatWest, maxLatEast);
+    } else if (isUTM(projection)) {
+      if (this.debugLevel >= 1) console.log('georaster projection is UTM');
+      var bottomLeft = this.projector.forward({ x: xmin, y: ymin });
+      var _minLatWest = L.latLng(bottomLeft.y, bottomLeft.x);
+      var topRight = this.projector.forward({ x: xmax, y: ymax });
+      var _maxLatEast = L.latLng(topRight.y, topRight.x);
+      this._bounds = L.latLngBounds(_minLatWest, _maxLatEast);
+    } else {
+      throw 'georaster-layer-for-leaflet does not support rasters with the current georaster\'s projection';
+    }
+  },
+
+  initProjector: function initProjector(georaster) {
+    var projection = georaster.projection;
+
+    if (isUTM(projection)) {
+      if (!proj4) {
+        throw 'proj4 must be found in the global scope in order to load a raster that uses a UTM projection';
+      }
+      this.projector = proj4(getProj4String(georaster.projection), 'EPSG:4326');
+      if (this.debugLevel >= 1) console.log('projector set');
+    }
+  }
+
 });
 
-if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
-    module.exports = GeoRasterLayer;
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = GeoRasterLayer;
 }
-if (typeof window !== "undefined") {
-    window["GeoRasterLayer"] = GeoRasterLayer;
-} else if (typeof self !== "undefined") {
-    self["GeoRasterLayer"] = GeoRasterLayer; // jshint ignore:line
+if (typeof window !== 'undefined') {
+  window['GeoRasterLayer'] = GeoRasterLayer;
+} else if (typeof self !== 'undefined') {
+  self['GeoRasterLayer'] = GeoRasterLayer; // jshint ignore:line
 }
