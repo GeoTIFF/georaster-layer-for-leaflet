@@ -1,2 +1,5 @@
-wget https://download.osgeo.org/geotiff/samples/usgs/o41078a6.tif
-gdal_translate -outsize 100 100 o41078a6.tif utm.tif
+# original script before we uploaded utm.tif to AWS S3
+# wget https://download.osgeo.org/geotiff/samples/usgs/o41078a6.tif
+# gdal_translate -outsize 100 100 o41078a6.tif utm.tif
+
+wget https://s3.amazonaws.com/georaster-layer-for-leaflet/utm.tif

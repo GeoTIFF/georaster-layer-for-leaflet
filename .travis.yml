@@ -1,0 +1,15 @@
+script:
+  - chmod +x tests/setup.sh
+  - cd tests && bash setup.sh
+  - npm run lint
+  - npm run build
+  - npm run test
+cache:
+  directories:
+    - node_modules
+git:
+  depth: 3
+language: node_js
+node_js:
+  - node
+  - lts/*
