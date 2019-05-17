@@ -304,7 +304,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         } else if (numberOfValues === 3) {
           return 'rgb(' + values[0] + ',' + values[1] + ',' + values[2] + ')';
         } else if (numberOfValues === 4) {
-          return 'rgba(' + values[0] + ',' + values[1] + ',' + values[2] + ',' + values[3] + ')';
+          return 'rgba(' + values[0] + ',' + values[1] + ',' + values[2] + ',' + values[3] / 255 + ')';
         }
       }
     }
