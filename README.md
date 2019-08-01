@@ -23,6 +23,7 @@ https://geotiff.github.io/georaster-layer-for-leaflet-example/
 - Super faster rendering thanks to a simple nearest neighbor interpolation
 - Use of web workers means seamless integration that doesn't block main thread
 - Loads large geotiffs greater than a hundred megabytes
+- Supports custom rendering including custom colors and context drawing
 
 
 # Longer Usage Example
@@ -72,6 +73,9 @@ fetch(url_to_geotiff_file)
   });
 });
 ```
+
+# Advanced Capabilities
+Please read about our advanced capabilities including custom context drawing functions and displaying directional arrows in [ADVANCED.md](ADVANCED.md).
 
 # Support
 Contact the package author, Daniel J. Dufour, at daniel.j.dufour@gmail.com

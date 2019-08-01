@@ -224,10 +224,26 @@ const GeoRasterLayer = L.GridLayer.extend({
                 // get value from array with data for entire raster
                 values = rasters.map(raster => raster[yInRasterPixels][xInRasterPixels]);
               }
-              const color = this.getColor(values);
-              if (color) {
-                context.fillStyle = color;
-                context.fillRect(Math.round(w * widthOfSampleInScreenPixels), yInTilePixels, widthOfSampleInScreenPixelsInt, heightOfSampleInScreenPixelsInt);
+
+              // x-axis coordinate of the starting point of the rectangle representing the raster pixel
+              const x = Math.round(w * widthOfSampleInScreenPixels);
+
+              // y-axis coordinate of the starting point of the rectangle representing the raster pixel
+              const y = yInTilePixels;
+
+              // how many real screen pixels does a pixel of the sampled raster take up
+              const width = widthOfSampleInScreenPixelsInt;
+              const height = heightOfSampleInScreenPixelsInt;
+
+              if (this.options.customDrawFunction) {
+                console.log("running custom draw");
+                this.options.customDrawFunction({ values, context, x, y, width, height });
+              } else {
+                const color = this.getColor(values);
+                if (color) {
+                  context.fillStyle = color;
+                  context.fillRect(x, y, width, height);
+                }
               }
             }
           }

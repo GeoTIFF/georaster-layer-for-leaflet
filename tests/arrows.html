@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"/>
+    <style>
+      #map {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="../georaster-layer-for-leaflet.browserify.min.js"></script>
+    <script>
+      // initalize leaflet map
+      var map = L.map('map').setView([0, 0], 5);
+
+      // add OpenStreetMap basemap
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/wind_direction.tif";
+
+      fetch(url_to_geotiff_file)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+          parseGeoraster(arrayBuffer).then(georaster => {
+            var layer = new GeoRasterLayer({
+              georaster,
+              customDrawFunction: function({ context, x, y, width, height, values }) {
+                // from https://github.com/stuartmatthews/leaflet-geotiff/blob/master/leaflet-geotiff-vector-arrows.js
+                var value = values[0];
+                var arrowSize = width / 2.5;
+                context.save();
+                context.translate(x, y);
+      					context.rotate((90+value)*Math.PI/180);
+      					context.beginPath();
+      					context.moveTo(-arrowSize/2, 0);
+      					context.lineTo(+arrowSize/2, 0);
+      					context.moveTo(arrowSize*0.25, -arrowSize*0.25);
+      					context.lineTo(+arrowSize/2, 0);
+      					context.lineTo(arrowSize*0.25, arrowSize*0.25);
+      					context.stroke();
+      					context.restore();
+              }
+            });
+            layer.addTo(map);
+            map.fitBounds(layer.getBounds());
+        });
+      });
+    </script>
+  </body>
+</html>

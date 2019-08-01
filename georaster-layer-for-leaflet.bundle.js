@@ -252,10 +252,26 @@ var GeoRasterLayer = L.GridLayer.extend({
                     return raster[yInRasterPixels][xInRasterPixels];
                   });
                 }
-                var color = _this2.getColor(values);
-                if (color) {
-                  context.fillStyle = color;
-                  context.fillRect(Math.round(w * widthOfSampleInScreenPixels), yInTilePixels, widthOfSampleInScreenPixelsInt, heightOfSampleInScreenPixelsInt);
+
+                // x-axis coordinate of the starting point of the rectangle representing the raster pixel
+                var x = Math.round(w * widthOfSampleInScreenPixels);
+
+                // y-axis coordinate of the starting point of the rectangle representing the raster pixel
+                var y = yInTilePixels;
+
+                // how many real screen pixels does a pixel of the sampled raster take up
+                var width = widthOfSampleInScreenPixelsInt;
+                var height = heightOfSampleInScreenPixelsInt;
+
+                if (_this2.options.customDrawFunction) {
+                  console.log("running custom draw");
+                  _this2.options.customDrawFunction({ values: values, context: context, x: x, y: y, width: width, height: height });
+                } else {
+                  var color = _this2.getColor(values);
+                  if (color) {
+                    context.fillStyle = color;
+                    context.fillRect(x, y, width, height);
+                  }
                 }
               }
             };
