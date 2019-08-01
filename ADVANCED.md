@@ -8,4 +8,4 @@ You can directly edit the canvas that is being rendered by passing in a customDr
   - width: how wide in screen pixels is the rectangular representation of a raster pixel sampled from the original raster
   - height: how tall in screen pixels is the rectangular representation of a raster pixel sampled from the original raster
 
-Here's a rough example implementing drawing of wind direction arrows: https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/wind-direction-arrows.html 
+Here's a rough example implementing drawing of wind direction arrows: https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/wind-direction-arrows.html and the [source code](https://github.com/GeoTIFF/georaster-layer-for-leaflet-example/blob/master/examples/wind-direction-arrows.html#L38) for it.
