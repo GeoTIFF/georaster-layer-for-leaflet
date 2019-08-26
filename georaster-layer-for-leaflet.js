@@ -11,6 +11,12 @@ const GeoRasterLayer = L.GridLayer.extend({
   initialize: function (options) {
     try {
 
+      const georaster = options.georaster;
+
+      if (georaster.sourceType === 'url') {
+        if (!options.tileSize) options.tileSize = 2048;
+      }
+
       if (!options.debugLevel) options.debugLevel = 1;
       if (!options.keepBuffer) options.keepBuffer = 25;
       if (!options.resolution) options.resolution = Math.pow(2, 5);
@@ -19,7 +25,6 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log('georaster:', options);
 
-      const georaster = options.georaster;
       this.georaster = georaster;
       this.scale = chroma.scale();
 
@@ -40,6 +45,7 @@ const GeoRasterLayer = L.GridLayer.extend({
           create a new tile
       */
       const tileSize = this.getTileSize();
+      console.log("tileSize:", tileSize);
       this._tileHeight = tileSize.y;
       this._tileWidth = tileSize.x;
 
@@ -86,18 +92,23 @@ const GeoRasterLayer = L.GridLayer.extend({
 
       if (this.projection === 4326) {
         return {
-          y: Math.floor( (ymax - lat) / this._pixelHeight),
-          x: Math.floor( (lng - xmin) / this._pixelWidth ),
+          y: Math.floor( (ymax - lat) / this.georaster.pixelHeight),
+          x: Math.floor( (lng - xmin) / this.georaster.pixelWidth ),
         };
       } else if (this.projector) {
         /* source raster doesn't use latitude and longitude,
            so need to reproject point from lat/long to projection of raster
         */
         const [x, y] = this.projector.inverse([lng, lat]);
-        return {
-          y: Math.floor( (ymax - y) / this._pixelHeight),
-          x: Math.floor( (x - xmin) / this._pixelWidth),
+	if (x === Infinity || y === Infinity) {
+		console.error("projector converted", [lng, lat], "to", [x, y]);
+	}
+        const tileCoords = {
+          y: Math.floor( (ymax - y) / this.georaster.pixelHeight),
+          x: Math.floor( (x - xmin) / this.georaster.pixelWidth),
         };
+        console.log("tileCoords:", tileCoords);
+        return tileCoords;
       }
     };
 
@@ -113,11 +124,21 @@ const GeoRasterLayer = L.GridLayer.extend({
       top: topLeft.y,
       width: numberOfSamplesAcross,
     };
-    console.log('getValuesOptions:', getValuesOptions);
-    return this.georaster.getValues(getValuesOptions);
+    if (!Object.values(getValuesOptions).every(isFinite)) {
+      console.error("getRasters failed because not all values are finite:", getValuesOptions);
+    } else {
+      return this.georaster.getValues(getValuesOptions);
+    }
+
+    /*const randValue = Math.floor(Math.random() * 255);
+    return Promise.resolve([new Array(numberOfSamplesDown).fill(0).map(row => {
+      return new Array(numberOfSamplesAcross).fill(randValue);
+    })]);
+    */
   },
 
   createTile: function (coords, done) {
+    console.log("starting createTile with", coords);
     let error;
 
     // Unpacking values for increased speed
@@ -183,15 +204,15 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
     setTimeout(async () => {
-      const tileRasters = null;
+      let tileRasters;
       if (!rasters) {
-        throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
-        /*
+        //throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
+        ///*
         tileRasters = await this.getRasters({
           tileNwPoint, heightOfSampleInScreenPixels,
           widthOfSampleInScreenPixels, coords, pixelHeight, pixelWidth,
           numberOfSamplesAcross, numberOfSamplesDown, ymax, xmin});
-        */
+        //*/
       }
 
       for (let h = 0; h < numberOfSamplesDown; h++) {
@@ -220,9 +241,12 @@ const GeoRasterLayer = L.GridLayer.extend({
               if (tileRasters) {
                 // get value from array specific to this tile
                 values = tileRasters.map(raster => raster[h][w]);
-              } else {
+              } else if (rasters) {
                 // get value from array with data for entire raster
                 values = rasters.map(raster => raster[yInRasterPixels][xInRasterPixels]);
+              } else {
+                done("no rasters are available for, so skipping value generation");
+                return;
               }
 
               // x-axis coordinate of the starting point of the rectangle representing the raster pixel

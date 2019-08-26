@@ -28,13 +28,18 @@
           attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      const rasterUrl = "https://landsat-pds.s3.amazonaws.com/c1/L8/024/030/LC08_L1TP_024030_20180723_20180731_01_T1/LC08_L1TP_024030_20180723_20180731_01_T1_B1.TIF";
+      //const rasterUrl = "https://landsat-pds.s3.amazonaws.com/c1/L8/024/030/LC08_L1TP_024030_20180723_20180731_01_T1/LC08_L1TP_024030_20180723_20180731_01_T1_B1.TIF";
+      //const rasterUrl = "https://s3.amazonaws.com/geotiff.io/PuertoRicoTropicalFruit.tiff";
+      const rasterUrl = new URLSearchParams(window.location.search).get("url");
       parseGeoraster(rasterUrl).then(georaster => {
-        console.log("georaster:", georaster);
-        var pixelValueToColorFn = value => {
-          console.log("pixel value", value);
+        var pixelValuesToColorFn = values => {
+          if(values.all(v => typeof v === undefined)) {
+            return 'rgb(255,0,0)';
+          } else if(values) {
+            return 'rgb(' + values[0] + ',0,0)';
+          }
         };
-        var layer = new GeoRasterLayer({ georaster, pixelValueToColorFn });
+        var layer = new GeoRasterLayer({ georaster, pixelValuesToColorFn });
         layer.addTo(map);
         map.fitBounds(layer.getBounds());
       });
