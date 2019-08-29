@@ -1,6 +1,6 @@
 {
   "name": "georaster-layer-for-leaflet",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
   "main": "georaster-layer-for-leaflet.bundle.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "build": "npm run babel && npm run browserify",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
     "lint": "eslint georaster-layer-for-leaflet.js && eslint utils/utm.js",
-    "test": "HOST=0.0.0.0 http-server"
+    "test": "HOST=0.0.0.0 http-server --cors"
   },
   "repository": {
     "type": "git",

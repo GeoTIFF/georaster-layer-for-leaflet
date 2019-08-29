@@ -60,4 +60,6 @@ typings/
 # lock files
 *package-lock.json
 
+*.tiff
 *.tif
+*.TIF
