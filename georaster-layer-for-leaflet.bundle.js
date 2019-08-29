@@ -217,13 +217,10 @@ var GeoRasterLayer = L.GridLayer.extend({
     setTimeout(async function () {
       var tileRasters = void 0;
       if (!rasters) {
-        //throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
-        ///*
         tileRasters = await _this2.getRasters({
           tileNwPoint: tileNwPoint, heightOfSampleInScreenPixels: heightOfSampleInScreenPixels,
           widthOfSampleInScreenPixels: widthOfSampleInScreenPixels, coords: coords, pixelHeight: pixelHeight, pixelWidth: pixelWidth,
           numberOfSamplesAcross: numberOfSamplesAcross, numberOfSamplesDown: numberOfSamplesDown, ymax: ymax, xmin: xmin });
-        //*/
       }
 
       var _loop = function _loop(h) {
