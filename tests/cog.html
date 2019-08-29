@@ -21,25 +21,29 @@
     <script src="../georaster-layer-for-leaflet.browserify.min.js"></script>
     <script>
       // initalize leaflet map
-      var map = L.map('map').setView([0, 0], 5);
+      var map = L.map('map').setView([0, 0], 11);
 
       // add OpenStreetMap basemap
       L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      //const rasterUrl = "https://landsat-pds.s3.amazonaws.com/c1/L8/024/030/LC08_L1TP_024030_20180723_20180731_01_T1/LC08_L1TP_024030_20180723_20180731_01_T1_B1.TIF";
-      //const rasterUrl = "https://s3.amazonaws.com/geotiff.io/PuertoRicoTropicalFruit.tiff";
-      const rasterUrl = new URLSearchParams(window.location.search).get("url");
+      const rasterUrl = "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif";
       parseGeoraster(rasterUrl).then(georaster => {
+        const { noDataValue } = georaster;
         var pixelValuesToColorFn = values => {
-          if(values.all(v => typeof v === undefined)) {
-            return 'rgb(255,0,0)';
-          } else if(values) {
-            return 'rgb(' + values[0] + ',0,0)';
+          if (values.some(value => value === noDataValue)) {
+            return 'rgba(0,0,0,0.0)';
+          } else {
+            const [r, g, b] = values;
+            return `rgba(${r},${g},${b},.85)`;
           }
         };
-        var layer = new GeoRasterLayer({ georaster, pixelValuesToColorFn });
+        const resolution = 64;
+        var layer = new GeoRasterLayer({
+          attribution: "Planet",
+          georaster, pixelValuesToColorFn, resolution
+        });
         layer.addTo(map);
         map.fitBounds(layer.getBounds());
       });

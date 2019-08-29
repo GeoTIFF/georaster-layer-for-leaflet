@@ -1,5 +1,7 @@
 'use strict';
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 /* global L, proj4 */
@@ -14,6 +16,14 @@ var GeoRasterLayer = L.GridLayer.extend({
   initialize: function initialize(options) {
     try {
 
+      var georaster = options.georaster;
+
+      if (georaster.sourceType === 'url') {
+        if (!options.updateWhenIdle) options.updateWhenIdle = false;
+        if (!options.updateWhenZooming) options.updateWhenZooming = true;
+        if (!options.keepBuffer) options.keepBuffer = 16;
+      }
+
       if (!options.debugLevel) options.debugLevel = 1;
       if (!options.keepBuffer) options.keepBuffer = 25;
       if (!options.resolution) options.resolution = Math.pow(2, 5);
@@ -22,7 +32,6 @@ var GeoRasterLayer = L.GridLayer.extend({
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log('georaster:', options);
 
-      var georaster = options.georaster;
       this.georaster = georaster;
       this.scale = chroma.scale();
 
@@ -91,8 +100,8 @@ var GeoRasterLayer = L.GridLayer.extend({
 
       if (_this.projection === 4326) {
         return {
-          y: Math.floor((ymax - lat) / _this._pixelHeight),
-          x: Math.floor((lng - xmin) / _this._pixelWidth)
+          y: Math.floor((ymax - lat) / _this.georaster.pixelHeight),
+          x: Math.floor((lng - xmin) / _this.georaster.pixelWidth)
         };
       } else if (_this.projector) {
         /* source raster doesn't use latitude and longitude,
@@ -103,10 +112,14 @@ var GeoRasterLayer = L.GridLayer.extend({
             x = _projector$inverse2[0],
             y = _projector$inverse2[1];
 
-        return {
-          y: Math.floor((ymax - y) / _this._pixelHeight),
-          x: Math.floor((x - xmin) / _this._pixelWidth)
+        if (x === Infinity || y === Infinity) {
+          console.error('projector converted', [lng, lat], 'to', [x, y]);
+        }
+        var tileCoords = {
+          y: Math.floor((ymax - y) / _this.georaster.pixelHeight),
+          x: Math.floor((x - xmin) / _this.georaster.pixelWidth)
         };
+        return tileCoords;
       }
     };
 
@@ -122,8 +135,11 @@ var GeoRasterLayer = L.GridLayer.extend({
       top: topLeft.y,
       width: numberOfSamplesAcross
     };
-    console.log('getValuesOptions:', getValuesOptions);
-    return this.georaster.getValues(getValuesOptions);
+    if (!Object.values(getValuesOptions).every(isFinite)) {
+      console.error('getRasters failed because not all values are finite:', getValuesOptions);
+    } else {
+      return this.georaster.getValues(getValuesOptions);
+    }
   },
 
   createTile: function createTile(coords, done) {
@@ -199,15 +215,15 @@ var GeoRasterLayer = L.GridLayer.extend({
 
     // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
     setTimeout(async function () {
-      var tileRasters = null;
+      var tileRasters = void 0;
       if (!rasters) {
-        throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
-        /*
-        tileRasters = await this.getRasters({
-          tileNwPoint, heightOfSampleInScreenPixels,
-          widthOfSampleInScreenPixels, coords, pixelHeight, pixelWidth,
-          numberOfSamplesAcross, numberOfSamplesDown, ymax, xmin});
-        */
+        //throw 'Sorry. Cloud Optimized GeoTIFFs are not yet supported';
+        ///*
+        tileRasters = await _this2.getRasters({
+          tileNwPoint: tileNwPoint, heightOfSampleInScreenPixels: heightOfSampleInScreenPixels,
+          widthOfSampleInScreenPixels: widthOfSampleInScreenPixels, coords: coords, pixelHeight: pixelHeight, pixelWidth: pixelWidth,
+          numberOfSamplesAcross: numberOfSamplesAcross, numberOfSamplesDown: numberOfSamplesDown, ymax: ymax, xmin: xmin });
+        //*/
       }
 
       var _loop = function _loop(h) {
@@ -218,7 +234,7 @@ var GeoRasterLayer = L.GridLayer.extend({
             lat = _map$unproject2.lat;
 
         if (lat > minLat && lat < maxLat) {
-          (function () {
+          var _ret2 = function () {
             var yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
             var yInRasterPixels = _this2.projection === 4326 ? Math.floor((maxLat - lat) / pixelHeight) : null;
 
@@ -246,11 +262,20 @@ var GeoRasterLayer = L.GridLayer.extend({
                   values = tileRasters.map(function (raster) {
                     return raster[h][w];
                   });
-                } else {
+                } else if (rasters) {
                   // get value from array with data for entire raster
                   values = rasters.map(function (raster) {
                     return raster[yInRasterPixels][xInRasterPixels];
                   });
+                } else {
+                  done('no rasters are available for, so skipping value generation');
+                  return {
+                    v: {
+                      v: {
+                        v: void 0
+                      }
+                    }
+                  };
                 }
 
                 // x-axis coordinate of the starting point of the rectangle representing the raster pixel
@@ -264,7 +289,6 @@ var GeoRasterLayer = L.GridLayer.extend({
                 var height = heightOfSampleInScreenPixelsInt;
 
                 if (_this2.options.customDrawFunction) {
-                  console.log("running custom draw");
                   _this2.options.customDrawFunction({ values: values, context: context, x: x, y: y, width: width, height: height });
                 } else {
                   var color = _this2.getColor(values);
@@ -277,14 +301,20 @@ var GeoRasterLayer = L.GridLayer.extend({
             };
 
             for (var w = 0; w < numberOfSamplesAcross; w++) {
-              _loop2(w);
+              var _ret3 = _loop2(w);
+
+              if ((typeof _ret3 === 'undefined' ? 'undefined' : _typeof(_ret3)) === "object") return _ret3.v;
             }
-          })();
+          }();
+
+          if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
         }
       };
 
       for (var h = 0; h < numberOfSamplesDown; h++) {
-        _loop(h);
+        var _ret = _loop(h);
+
+        if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
       }
 
       done(error, tile);

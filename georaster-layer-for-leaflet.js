@@ -14,7 +14,9 @@ const GeoRasterLayer = L.GridLayer.extend({
       const georaster = options.georaster;
 
       if (georaster.sourceType === 'url') {
-        if (!options.tileSize) options.tileSize = 2048;
+        if (!options.updateWhenIdle) options.updateWhenIdle = false;
+        if (!options.updateWhenZooming) options.updateWhenZooming = true;
+        if (!options.keepBuffer) options.keepBuffer = 16;
       }
 
       if (!options.debugLevel) options.debugLevel = 1;
@@ -45,7 +47,6 @@ const GeoRasterLayer = L.GridLayer.extend({
           create a new tile
       */
       const tileSize = this.getTileSize();
-      console.log("tileSize:", tileSize);
       this._tileHeight = tileSize.y;
       this._tileWidth = tileSize.x;
 
@@ -100,14 +101,13 @@ const GeoRasterLayer = L.GridLayer.extend({
            so need to reproject point from lat/long to projection of raster
         */
         const [x, y] = this.projector.inverse([lng, lat]);
-	if (x === Infinity || y === Infinity) {
-		console.error("projector converted", [lng, lat], "to", [x, y]);
-	}
+        if (x === Infinity || y === Infinity) {
+          console.error('projector converted', [lng, lat], 'to', [x, y]);
+        }
         const tileCoords = {
           y: Math.floor( (ymax - y) / this.georaster.pixelHeight),
           x: Math.floor( (x - xmin) / this.georaster.pixelWidth),
         };
-        console.log("tileCoords:", tileCoords);
         return tileCoords;
       }
     };
@@ -125,20 +125,13 @@ const GeoRasterLayer = L.GridLayer.extend({
       width: numberOfSamplesAcross,
     };
     if (!Object.values(getValuesOptions).every(isFinite)) {
-      console.error("getRasters failed because not all values are finite:", getValuesOptions);
+      console.error('getRasters failed because not all values are finite:', getValuesOptions);
     } else {
       return this.georaster.getValues(getValuesOptions);
     }
-
-    /*const randValue = Math.floor(Math.random() * 255);
-    return Promise.resolve([new Array(numberOfSamplesDown).fill(0).map(row => {
-      return new Array(numberOfSamplesAcross).fill(randValue);
-    })]);
-    */
   },
 
   createTile: function (coords, done) {
-    console.log("starting createTile with", coords);
     let error;
 
     // Unpacking values for increased speed
@@ -245,7 +238,7 @@ const GeoRasterLayer = L.GridLayer.extend({
                 // get value from array with data for entire raster
                 values = rasters.map(raster => raster[yInRasterPixels][xInRasterPixels]);
               } else {
-                done("no rasters are available for, so skipping value generation");
+                done('no rasters are available for, so skipping value generation');
                 return;
               }
 
@@ -260,7 +253,6 @@ const GeoRasterLayer = L.GridLayer.extend({
               const height = heightOfSampleInScreenPixelsInt;
 
               if (this.options.customDrawFunction) {
-                console.log("running custom draw");
                 this.options.customDrawFunction({ values, context, x, y, width, height });
               } else {
                 const color = this.getColor(values);
