@@ -27,13 +27,17 @@
           attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      var url_to_geotiff_file = "https://geotiff.github.io/georaster-layer-for-leaflet-example/example_4326.tif";
+      var url_to_geotiff_file = "./cmems_VHM0-b10.geotiff";
 
       fetch(url_to_geotiff_file)
         .then(response => response.arrayBuffer())
         .then(arrayBuffer => {
           parseGeoraster(arrayBuffer).then(georaster => {
-            var layer = new GeoRasterLayer({ georaster });
+            console.log("georaster:", georaster);
+            var layer = new GeoRasterLayer({
+              georaster,
+              resolution: 512
+            });
             layer.addTo(map);
             map.fitBounds(layer.getBounds());
         });
