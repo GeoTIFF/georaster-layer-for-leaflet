@@ -72,7 +72,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       ymax,
       xmin,
     } = options;
-    console.log('starting getRasters with options:', options);
+    if (this.debugLevel >= 1) console.log('starting getRasters with options:', options);
     // called if georaster was constructed from URL and we need to get
     // data separately for each tile
     // aka 'COG mode'
@@ -87,7 +87,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
       const mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
-      console.log('mapPoint:', mapPoint);
+      if (this.debugLevel >= 1) console.log('mapPoint:', mapPoint);
 
       const { lat, lng } = this._map.unproject(mapPoint, coords.z);
 
@@ -102,7 +102,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         */
         const [x, y] = this.projector.inverse([lng, lat]);
         if (x === Infinity || y === Infinity) {
-          console.error('projector converted', [lng, lat], 'to', [x, y]);
+          if (this.debugLevel >= 1) console.error('projector converted', [lng, lat], 'to', [x, y]);
         }
         const tileCoords = {
           y: Math.floor( (ymax - y) / this.georaster.pixelHeight),
