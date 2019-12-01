@@ -11,6 +11,8 @@ var _require = require('./utils/utm.js'),
 
 var chroma = require('chroma-js');
 
+var EPSG4326 = 4326;
+var PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
 var GeoRasterLayer = L.GridLayer.extend({
 
   initialize: function initialize(options) {
@@ -77,7 +79,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         ymax = options.ymax,
         xmin = options.xmin;
 
-    console.log('starting getRasters with options:', options);
+    if (this.debugLevel >= 1) console.log('starting getRasters with options:', options);
     // called if georaster was constructed from URL and we need to get
     // data separately for each tile
     // aka 'COG mode'
@@ -92,13 +94,13 @@ var GeoRasterLayer = L.GridLayer.extend({
       var yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
       var mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
-      console.log('mapPoint:', mapPoint);
+      if (_this.debugLevel >= 1) console.log('mapPoint:', mapPoint);
 
       var _map$unproject = _this._map.unproject(mapPoint, coords.z),
           lat = _map$unproject.lat,
           lng = _map$unproject.lng;
 
-      if (_this.projection === 4326) {
+      if (_this.projection === EPSG4326) {
         return {
           y: Math.floor((ymax - lat) / _this.georaster.pixelHeight),
           x: Math.floor((lng - xmin) / _this.georaster.pixelWidth)
@@ -113,7 +115,7 @@ var GeoRasterLayer = L.GridLayer.extend({
             y = _projector$inverse2[1];
 
         if (x === Infinity || y === Infinity) {
-          console.error('projector converted', [lng, lat], 'to', [x, y]);
+          if (_this.debugLevel >= 1) console.error('projector converted', [lng, lat], 'to', [x, y]);
         }
         var tileCoords = {
           y: Math.floor((ymax - y) / _this.georaster.pixelHeight),
@@ -177,7 +179,7 @@ var GeoRasterLayer = L.GridLayer.extend({
 
     var rasterPixelsAcross = void 0,
         rasterPixelsDown = void 0;
-    if (this.projection === 4326) {
+    if (this.projection === EPSG4326) {
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((maxLngOfTile - minLngOfTile) / pixelWidth);
       rasterPixelsDown = Math.ceil((maxLatOfTile - minLatOfTile) / pixelHeight);
@@ -233,7 +235,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         if (lat > minLat && lat < maxLat) {
           var _ret2 = function () {
             var yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
-            var yInRasterPixels = _this2.projection === 4326 ? Math.floor((maxLat - lat) / pixelHeight) : null;
+            var yInRasterPixels = _this2.projection === EPSG4326 ? Math.floor((maxLat - lat) / pixelHeight) : null;
 
             var _loop2 = function _loop2(w) {
               var latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
@@ -243,7 +245,7 @@ var GeoRasterLayer = L.GridLayer.extend({
 
               if (lng > minLng && lng < maxLng) {
                 var xInRasterPixels = void 0;
-                if (_this2.projection === 4326) {
+                if (_this2.projection === EPSG4326) {
                   xInRasterPixels = Math.floor((lng - minLng) / pixelWidth);
                 } else if (_this2.projector) {
                   var inverted = _this2.projector.inverse({ x: lng, y: lat });
@@ -353,6 +355,17 @@ var GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
+  isSupportedProjection: function isSupportedProjection(projection) {
+    return isUTM(projection) || PROJ4_SUPPORTED_PROJECTIONS.has(projection);
+  },
+
+  getProjectionString: function getProjectionString(projection) {
+    if (isUTM(projection)) {
+      return getProj4String(projection);
+    }
+    return 'EPSG:' + projection;
+  },
+
   initBounds: function initBounds(georaster) {
     var projection = georaster.projection,
         xmin = georaster.xmin,
@@ -361,13 +374,13 @@ var GeoRasterLayer = L.GridLayer.extend({
         ymax = georaster.ymax;
 
     if (this.debugLevel >= 1) console.log('georaster projection is', projection);
-    if (projection === 4326) {
-      if (this.debugLevel >= 1) console.log('georaster projection is in 4326');
+    if (projection === EPSG4326) {
+      if (this.debugLevel >= 1) console.log('georaster projection is in ' + EPSG4326);
       var minLatWest = L.latLng(ymin, xmin);
       var maxLatEast = L.latLng(ymax, xmax);
       this._bounds = L.latLngBounds(minLatWest, maxLatEast);
-    } else if (isUTM(projection)) {
-      if (this.debugLevel >= 1) console.log('georaster projection is UTM');
+    } else if (this.isSupportedProjection(projection)) {
+      if (this.debugLevel >= 1) console.log('georaster projection is UTM or supported by proj4');
       var bottomLeft = this.projector.forward({ x: xmin, y: ymin });
       var _minLatWest = L.latLng(bottomLeft.y, bottomLeft.x);
       var topRight = this.projector.forward({ x: xmax, y: ymax });
@@ -381,11 +394,11 @@ var GeoRasterLayer = L.GridLayer.extend({
   initProjector: function initProjector(georaster) {
     var projection = georaster.projection;
 
-    if (isUTM(projection)) {
+    if (this.isSupportedProjection(projection)) {
       if (!proj4) {
         throw 'proj4 must be found in the global scope in order to load a raster that uses a UTM projection';
       }
-      this.projector = proj4(getProj4String(georaster.projection), 'EPSG:4326');
+      this.projector = proj4(this.getProjectionString(georaster.projection), 'EPSG:' + EPSG4326);
       if (this.debugLevel >= 1) console.log('projector set');
     }
   }
