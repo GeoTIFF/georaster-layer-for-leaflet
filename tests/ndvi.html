@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"/>
+    <style>
+      #map {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/chroma-js"></script>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/proj4"></script>
+    <script src="../georaster-layer-for-leaflet.browserify.min.js"></script>
+    <script>
+      // initalize leaflet map
+      var map = L.map('map').setView([0, 0], 5);
+
+      // add OpenStreetMap basemap
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      /*
+        NDVI is (Near-Infrared - Red) / (Near-Infrared + Red)
+
+        "In Landsat 8, NDVI = (Band 5 – Band 4) / (Band 5 + Band 4)." (USGS)
+      */
+      const baseURL = "https://landsat-pds.s3.amazonaws.com/c1/L8/024/030/LC08_L1TP_024030_20180723_20180731_01_T1/LC08_L1TP_024030_20180723_20180731_01_T1_B.TIF";
+      const band4URL = baseURL.replace('B.TIF', 'B4.TIF');
+      const band5URL = baseURL.replace('B.TIF', 'B5.TIF');
+      const scale = chroma.scale([
+        '#C7BB95',
+        '#FEFEE1',
+        '#6E9F62',
+        '#032816',
+        'black'
+      ]).domain([
+        0,
+        .2,
+        .4,
+        .6,
+        .8
+      ]);
+      Promise.all([
+        parseGeoraster(band4URL),
+        parseGeoraster(band5URL)
+      ]).then(georasters => {
+        var pixelValuesToColorFn = values => {
+          const [ RED, NIR ] = values;
+          const dividend = NIR - RED;
+          const divisor = NIR + RED;
+          let result;
+          if (dividend === 0 && divisor === 0) {
+            // probably no reading here
+            return 'rgba(0,0,0,0)';
+          }
+          if (dividend === 0 || divisor === 0) {
+            result = 0;
+          } else {
+            result = dividend === 0 ? 0 : dividend / divisor;
+          }
+          if (result <= 0.1) return 'blue';
+          if (result >= 0.8) return 'black';
+          return scale(result).hex();
+        };
+        var layer = new GeoRasterLayer({
+          georasters,
+          pixelValuesToColorFn,
+          resolution: 64,
+          opacity: 0.5
+        });
+        layer.addTo(map);
+        map.fitBounds(layer.getBounds());
+      });
+    </script>
+  </body>
+</html>
