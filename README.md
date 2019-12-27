@@ -77,5 +77,8 @@ fetch(url_to_geotiff_file)
 # Advanced Capabilities
 Please read about our advanced capabilities including custom context drawing functions and displaying directional arrows in [ADVANCED.md](ADVANCED.md).
 
+# More Questions
+Check out our [Frequently Asked Questions](FAQs.md)
+
 # Support
 Contact the package author, Daniel J. Dufour, at daniel.j.dufour@gmail.com
