@@ -55,8 +55,7 @@
         parseGeoraster(band5URL)
       ]).then(georasters => {
         var pixelValuesToColorFn = values => {
-          const RED = values[0][0];
-          const NIR = values[1][0];
+          const [ RED, NIR ] = values;
           const dividend = NIR - RED;
           const divisor = NIR + RED;
           let result;

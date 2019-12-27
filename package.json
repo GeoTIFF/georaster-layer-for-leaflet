@@ -1,6 +1,6 @@
 {
   "name": "georaster-layer-for-leaflet",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
   "main": "georaster-layer-for-leaflet.bundle.js",
   "scripts": {

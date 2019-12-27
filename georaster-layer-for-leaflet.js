@@ -6,6 +6,8 @@ const {
 
 const chroma = require('chroma-js');
 
+const EPSG4326 = 4326;
+const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
 const GeoRasterLayer = L.GridLayer.extend({
 
   initialize: function (options) {
@@ -16,7 +18,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       } else if (options.georaster) {
         this.georasters = [options.georaster];
       } else {
-        throw new Error("You must initialize a GeoRasterLayer with a georaster or georasters value");
+        throw new Error('You must initialize a GeoRasterLayer with a georaster or georasters value');
       }
 
       /*
@@ -24,7 +26,7 @@ const GeoRasterLayer = L.GridLayer.extend({
           We do this in order to increase speed.
       */
       const keys = ['pixelHeight', 'pixelWidth', 'projection', 'sourceType',
-        'xmin', 'xmax', 'ymin', 'ymax'];
+        'xmin', 'xmax', 'ymin', 'ymax', 'noDataValue'];
       if (this.georasters.length > 1) {
         keys.forEach(key => {
           if (this.same(this.georasters, key)) {
@@ -32,11 +34,11 @@ const GeoRasterLayer = L.GridLayer.extend({
           } else {
             throw new Error('all GeoRasters must have the same ' + key);
           }
-        })
+        });
       } else if (this.georasters.length === 1) {
         keys.forEach(key => {
-          this[key] = this.georasters[0][key]
-        })
+          this[key] = this.georasters[0][key];
+        });
       }
 
       if (this.sourceType === 'url') {
@@ -52,6 +54,14 @@ const GeoRasterLayer = L.GridLayer.extend({
 
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log('georaster:', options);
+
+      if (this.georasters.every(georaster => typeof georaster.values === 'object')) {
+        this.rasters= this.georasters.reduce((result, georaster) => {
+          result = result.concat(georaster.values);
+          return result;
+        }, []);
+        if (this.debugLevel > 1) console.log('this.rasters:', this.rasters);
+      }
 
       this.chroma = chroma;
       this.scale = chroma.scale();
@@ -71,7 +81,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.tileWidth = tileSize.x;
 
       if (this.georasters.length > 1 && !options.pixelValuesToColorFn) {
-        throw 'you must pass in a pixelValuesToColorFn if you are combining rasters'
+        throw 'you must pass in a pixelValuesToColorFn if you are combining rasters';
       }
 
       if (this.georasters.length === 1 && this.georasters[0].sourceType === 'url' && this.georasters[0].numberOfRasters === 1 && !options.pixelValuesToColorFn) {
@@ -96,7 +106,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       ymax,
       xmin,
     } = options;
-    console.log('starting getRasters with options:', options);
+    if (this.debugLevel >= 1) console.log('starting getRasters with options:', options);
     // called if georaster was constructed from URL and we need to get
     // data separately for each tile
     // aka 'COG mode'
@@ -111,11 +121,11 @@ const GeoRasterLayer = L.GridLayer.extend({
       const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
       const mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
-      console.log('mapPoint:', mapPoint);
+      if (this.debugLevel >= 1) console.log('mapPoint:', mapPoint);
 
       const { lat, lng } = this._map.unproject(mapPoint, coords.z);
 
-      if (this.projection === 4326) {
+      if (this.projection === EPSG4326) {
         return {
           y: Math.floor( (ymax - lat) / this.pixelHeight),
           x: Math.floor( (lng - xmin) / this.pixelWidth),
@@ -126,7 +136,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         */
         const [x, y] = this.projector.inverse([lng, lat]);
         if (x === Infinity || y === Infinity) {
-          console.error('projector converted', [lng, lat], 'to', [x, y]);
+          if (this.debugLevel >= 1) console.error('projector converted', [lng, lat], 'to', [x, y]);
         }
         return {
           y: Math.floor( (ymax - y) / this.pixelHeight),
@@ -150,7 +160,11 @@ const GeoRasterLayer = L.GridLayer.extend({
     if (!Object.values(getValuesOptions).every(isFinite)) {
       console.error('getRasters failed because not all values are finite:', getValuesOptions);
     } else {
-      return Promise.all(this.georasters.map(georaster => georaster.getValues(getValuesOptions)));
+      return Promise.all(this.georasters.map(georaster => georaster.getValues(getValuesOptions)))
+        .then(valuesByGeoRaster => valuesByGeoRaster.reduce((result, values) => {
+          result = result.concat(values);
+          return result;
+        }, []));
     }
   },
 
@@ -177,7 +191,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     const maxLatOfTile = bounds.getNorth();
 
     let rasterPixelsAcross, rasterPixelsDown;
-    if (this.projection === 4326) {
+    if (this.projection === EPSG4326) {
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((maxLngOfTile - minLngOfTile) / pixelWidth);
       rasterPixelsDown = Math.ceil((maxLatOfTile - minLatOfTile) / pixelHeight);
@@ -219,23 +233,22 @@ const GeoRasterLayer = L.GridLayer.extend({
         tileRasters = await this.getRasters({
           tileNwPoint, heightOfSampleInScreenPixels,
           widthOfSampleInScreenPixels, coords, pixelHeight, pixelWidth,
-          numberOfSamplesAcross, numberOfSamplesDown, ymax, xmin});
+          numberOfSamplesAcross, numberOfSamplesDown, ymax, xmin });
       }
 
-      const numGeoRasters = this.georasters.length;
       for (let h = 0; h < numberOfSamplesDown; h++) {
         const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
         const latWestPoint = L.point(tileNwPoint.x, yCenterInMapPixels);
         const { lat } = map.unproject(latWestPoint, coords.z);
         if (lat > minLat && lat < maxLat) {
           const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
-          let yInRasterPixels = this.projection === 4326 ? Math.floor( (maxLat - lat) / pixelHeight ) : null;
+          let yInRasterPixels = this.projection === EPSG4326 ? Math.floor( (maxLat - lat) / pixelHeight ) : null;
           for (let w = 0; w < numberOfSamplesAcross; w++) {
             const latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
             const { lng } = map.unproject(latLngPoint, coords.z);
             if (lng > minLng && lng < maxLng) {
               let xInRasterPixels;
-              if (this.projection === 4326) {
+              if (this.projection === EPSG4326) {
                 xInRasterPixels = Math.floor( (lng - minLng) / pixelWidth );
               } else if (this.projector) {
                 const inverted = this.projector.inverse({ x: lng, y: lat });
@@ -248,10 +261,10 @@ const GeoRasterLayer = L.GridLayer.extend({
               let values = null;
               if (tileRasters) {
                 // get value from array specific to this tile
-                values = tileRasters.map(bands => bands.map(band => band[h][w]));
+                values = tileRasters.map(band => band[h][w]);
               } else if (rasters) {
                 // get value from array with data for entire raster
-                values = rasters.map(bands => bands.map(band => band[yInRasterPixels][xInRasterPixels]));
+                values = rasters.map(band => band[yInRasterPixels][xInRasterPixels]);
               } else {
                 done('no rasters are available for, so skipping value generation');
                 return;
@@ -297,9 +310,8 @@ const GeoRasterLayer = L.GridLayer.extend({
     if(this.options.pixelValuesToColorFn) {
       return this.options.pixelValuesToColorFn(values);
     } else {
-      const { noDataValue } = this.georasters[0];
       const numberOfValues = values.length;
-      const haveDataForAllBands = values.every(value => value !== undefined && value !== noDataValue);
+      const haveDataForAllBands = values.every(value => value !== undefined && value !== this.noDataValue);
       if (haveDataForAllBands) {
         if (numberOfValues == 1) {
           const { mins, ranges } = this.georasters[0];
@@ -315,23 +327,34 @@ const GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
-  initBounds: function () {
-    const { xmin, xmax, ymin, ymax } = this;
-    if (this.debugLevel >= 1) console.log('georaster projection is', this.projection);
-    if (this.projection === 4326) {
-      if (this.debugLevel >= 1) console.log('georaster projection is 4326');
+  isSupportedProjection: function (projection) {
+    return isUTM(projection) || PROJ4_SUPPORTED_PROJECTIONS.has(projection);
+  },
+
+  getProjectionString: function (projection) {
+    if (isUTM(projection)) {
+      return getProj4String(projection);
+    }
+    return `EPSG:${projection}`;
+  },
+
+  initBounds: function (georaster) {
+    const { debugLevel, projection, xmin, xmax, ymin, ymax } = this;
+    if (debugLevel >= 1) console.log('this.projection is', projection);
+    if (projection === EPSG4326) {
+      if (debugLevel >= 1) console.log(`georaster projection is in ${EPSG4326}`);
       const minLatWest = L.latLng(ymin, xmin);
       const maxLatEast = L.latLng(ymax, xmax);
       this._bounds = L.latLngBounds(minLatWest, maxLatEast);
-    } else if (isUTM(this.projection)){
-      if (this.debugLevel >= 1) console.log('georaster projection is UTM');
+    } else if (this.isSupportedProjection(projection)) {
+      if (debugLevel >= 1) console.log('projection is UTM or supported by proj4');
       const bottomLeft = this.projector.forward({ x: xmin, y: ymin });
       const minLatWest = L.latLng(bottomLeft.y, bottomLeft.x);
       const topRight = this.projector.forward({ x: xmax, y: ymax });
       const maxLatEast = L.latLng(topRight.y, topRight.x);
       this._bounds = L.latLngBounds(minLatWest, maxLatEast);
     } else {
-      throw `georaster-layer-for-leaflet does not support rasters with the projection ${this.projection}`;
+      throw `georaster-layer-for-leaflet does not support rasters with the projection ${projection}`;
     }
 
     // these values are used so we don't try to sample outside of the raster
@@ -342,18 +365,18 @@ const GeoRasterLayer = L.GridLayer.extend({
   },
 
   initProjector: function () {
-    if (isUTM(this.projection)) {
+    if (this.isSupportedProjection(this.projection)) {
       if (!proj4) {
         throw 'proj4 must be found in the global scope in order to load a raster that uses a UTM projection';
       }
-      this.projector = proj4(getProj4String(this.projection), 'EPSG:4326');
+      this.projector = proj4(this.getProjectionString(this.projection), `EPSG:${EPSG4326}`);
       if (this.debugLevel >= 1) console.log('projector set');
     }
   },
 
-  same(array, key) {
+  same (array, key) {
     return new Set(array.map(item => item[key])).size === 1;
-  }
+  },
 
 });
 
