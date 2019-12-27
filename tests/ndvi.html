@@ -68,7 +68,6 @@
           } else {
             result = dividend === 0 ? 0 : dividend / divisor;
           }
-          //console.log("result:", result);
           if (result <= 0.1) return 'blue';
           if (result >= 0.8) return 'black';
           return scale(result).hex();
