@@ -24,6 +24,7 @@ https://geotiff.github.io/georaster-layer-for-leaflet-example/
 - Use of web workers means seamless integration that doesn't block main thread
 - Loads large geotiffs greater than a hundred megabytes
 - Supports custom rendering including custom colors and context drawing
+- Doesn't depend on WebGL
 
 
 # Longer Usage Example
