@@ -1,8 +1,9 @@
 {
   "name": "georaster-layer-for-leaflet",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
   "main": "georaster-layer-for-leaflet.bundle.js",
+  "unpkg": "./georaster-layer-for-leaflet.browserify.min.js",
   "scripts": {
     "babel": "babel --presets es2015 georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "browserify georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.browserify.min.js",
