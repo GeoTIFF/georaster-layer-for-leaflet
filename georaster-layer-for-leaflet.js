@@ -25,7 +25,8 @@ const GeoRasterLayer = L.GridLayer.extend({
           Unpacking values for use later.
           We do this in order to increase speed.
       */
-      const keys = ['pixelHeight', 'pixelWidth', 'projection', 'sourceType',
+      const keys = ['height','width',
+        'pixelHeight', 'pixelWidth', 'projection', 'sourceType',
         'xmin', 'xmax', 'ymin', 'ymax', 'noDataValue'];
       if (this.georasters.length > 1) {
         keys.forEach(key => {
@@ -173,6 +174,8 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     // Unpacking values for increased speed
     const { pixelHeight, pixelWidth, rasters, xmin, ymax } = this;
+    const rasterHeight = this.height;
+    const rasterWidth = this.width;
 
     // these values are used so we don't try to sample outside of the raster
     const { minLng, maxLng, maxLat, minLat } = this;
@@ -252,10 +255,13 @@ const GeoRasterLayer = L.GridLayer.extend({
                 xInRasterPixels = Math.floor( (lng - minLng) / pixelWidth );
               } else if (this.projector) {
                 const inverted = this.projector.inverse({ x: lng, y: lat });
-                const xInSrc = inverted.x;
                 const yInSrc = inverted.y;
                 yInRasterPixels = Math.floor( (ymax - yInSrc) / pixelHeight );
+                if (yInRasterPixels < 0 || yInRasterPixels >= rasterHeight) continue;
+
+                const xInSrc = inverted.x;
                 xInRasterPixels = Math.floor( (xInSrc - xmin) / pixelWidth);
+                if (xInRasterPixels < 0 || xInRasterPixels >= rasterWidth) continue;
               }
 
               let values = null;
@@ -264,7 +270,9 @@ const GeoRasterLayer = L.GridLayer.extend({
                 values = tileRasters.map(band => band[h][w]);
               } else if (rasters) {
                 // get value from array with data for entire raster
-                values = rasters.map(band => band[yInRasterPixels][xInRasterPixels]);
+                values = rasters.map(band => {
+                  return band[yInRasterPixels][xInRasterPixels];
+                });
               } else {
                 done('no rasters are available for, so skipping value generation');
                 return;

@@ -32,7 +32,7 @@ var GeoRasterLayer = L.GridLayer.extend({
           Unpacking values for use later.
           We do this in order to increase speed.
       */
-      var keys = ['pixelHeight', 'pixelWidth', 'projection', 'sourceType', 'xmin', 'xmax', 'ymin', 'ymax', 'noDataValue'];
+      var keys = ['height', 'width', 'pixelHeight', 'pixelWidth', 'projection', 'sourceType', 'xmin', 'xmax', 'ymin', 'ymax', 'noDataValue'];
       if (this.georasters.length > 1) {
         keys.forEach(function (key) {
           if (_this.same(_this.georasters, key)) {
@@ -196,8 +196,10 @@ var GeoRasterLayer = L.GridLayer.extend({
         xmin = this.xmin,
         ymax = this.ymax;
 
-    // these values are used so we don't try to sample outside of the raster
+    var rasterHeight = this.height;
+    var rasterWidth = this.width;
 
+    // these values are used so we don't try to sample outside of the raster
     var minLng = this.minLng,
         maxLng = this.maxLng,
         maxLat = this.maxLat,
@@ -289,10 +291,13 @@ var GeoRasterLayer = L.GridLayer.extend({
                   xInRasterPixels = Math.floor((lng - minLng) / pixelWidth);
                 } else if (_this3.projector) {
                   var inverted = _this3.projector.inverse({ x: lng, y: lat });
-                  var xInSrc = inverted.x;
                   var yInSrc = inverted.y;
                   yInRasterPixels = Math.floor((ymax - yInSrc) / pixelHeight);
+                  if (yInRasterPixels < 0 || yInRasterPixels >= rasterHeight) return 'continue';
+
+                  var xInSrc = inverted.x;
                   xInRasterPixels = Math.floor((xInSrc - xmin) / pixelWidth);
+                  if (xInRasterPixels < 0 || xInRasterPixels >= rasterWidth) return 'continue';
                 }
 
                 var values = null;
@@ -342,7 +347,13 @@ var GeoRasterLayer = L.GridLayer.extend({
             for (var w = 0; w < numberOfSamplesAcross; w++) {
               var _ret3 = _loop2(w);
 
-              if ((typeof _ret3 === 'undefined' ? 'undefined' : _typeof(_ret3)) === "object") return _ret3.v;
+              switch (_ret3) {
+                case 'continue':
+                  continue;
+
+                default:
+                  if ((typeof _ret3 === 'undefined' ? 'undefined' : _typeof(_ret3)) === "object") return _ret3.v;
+              }
             }
           }();
 
