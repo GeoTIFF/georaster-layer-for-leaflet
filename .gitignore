@@ -64,3 +64,5 @@ typings/
 *.tif
 *.TIF
 *.swp
+
+tests/*.tif.1

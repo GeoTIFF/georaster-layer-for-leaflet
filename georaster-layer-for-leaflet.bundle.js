@@ -379,6 +379,47 @@ var GeoRasterLayer = L.GridLayer.extend({
     return this._bounds;
   },
 
+  _isValidTile: function _isValidTile(coords) {
+    var crs = this._map.options.crs;
+
+    if (!crs.infinite) {
+      // don't load tile if it's out of bounds and not wrapped
+      var bounds = this._globalTileRange;
+      if (!crs.wrapLng && (coords.x < bounds.min.x || coords.x > bounds.max.x) || !crs.wrapLat && (coords.y < bounds.min.y || coords.y > bounds.max.y)) {
+        return false;
+      }
+    }
+
+    if (!this.options.bounds) {
+      return true;
+    }
+
+    var x = coords.x,
+        y = coords.y,
+        z = coords.z;
+
+
+    var layerBounds = L.latLngBounds(this.options.bounds);
+
+    // check given tile coordinates
+    if (layerBounds.overlaps(this._tileCoordsToBounds(coords))) return true;
+
+    // width of the globe in tiles at the given zoom level
+    var width = Math.pow(2, z);
+
+    // check one world to the left
+    var leftCoords = L.point(x - width, y);
+    leftCoords.z = z;
+    if (layerBounds.overlaps(this._tileCoordsToBounds(leftCoords))) return true;
+
+    // check one world to the right
+    var rightCoords = L.point(x + width, y);
+    rightCoords.z = z;
+    if (layerBounds.overlaps(this._tileCoordsToBounds(rightCoords))) return true;
+
+    return false;
+  },
+
   getColor: function getColor(values) {
     var _this4 = this;
 
