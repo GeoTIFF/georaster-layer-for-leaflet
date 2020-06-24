@@ -48,6 +48,7 @@
     "babel-preset-stage-2": "^6.24.1",
     "browserify": "^14.5.0",
     "eslint": "^5.16.0",
+    "http-server": "^0.12.3",
     "webpack": "^3.12.0"
   }
 }
