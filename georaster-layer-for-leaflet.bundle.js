@@ -32,7 +32,7 @@ var GeoRasterLayer = L.GridLayer.extend({
           Unpacking values for use later.
           We do this in order to increase speed.
       */
-      var keys = ['height', 'width', 'pixelHeight', 'pixelWidth', 'projection', 'sourceType', 'xmin', 'xmax', 'ymin', 'ymax', 'noDataValue'];
+      var keys = ['height', 'width', 'noDataValue', 'palette', 'pixelHeight', 'pixelWidth', 'projection', 'sourceType', 'xmin', 'xmax', 'ymin', 'ymax'];
       if (this.georasters.length > 1) {
         keys.forEach(function (key) {
           if (_this.same(_this.georasters, key)) {
@@ -436,7 +436,18 @@ var GeoRasterLayer = L.GridLayer.extend({
               mins = _georasters$.mins,
               ranges = _georasters$.ranges;
 
-          return this.scale((values[0] - mins[0]) / ranges[0]).hex();
+          var value = values[0];
+          if (this.palette) {
+            var _palette$value = _slicedToArray(this.palette[value], 4),
+                r = _palette$value[0],
+                g = _palette$value[1],
+                b = _palette$value[2],
+                a = _palette$value[3];
+
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + a / 255 + ')';
+          } else {
+            return this.scale((values[0] - mins[0]) / ranges[0]).hex();
+          }
         } else if (numberOfValues === 2) {
           return 'rgb(' + values[0] + ',' + values[1] + ',0)';
         } else if (numberOfValues === 3) {
