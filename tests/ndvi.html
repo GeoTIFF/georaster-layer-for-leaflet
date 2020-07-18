@@ -73,8 +73,8 @@
           return scale(result).hex();
         };
         var layer = new GeoRasterLayer({
-          georasters,
-          pixelValuesToColorFn,
+          georasters: georasters,
+          pixelValuesToColorFn: pixelValuesToColorFn,
           resolution: 64,
           opacity: 0.5
         });

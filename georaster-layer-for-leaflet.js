@@ -288,7 +288,19 @@ const GeoRasterLayer = L.GridLayer.extend({
               const height = heightOfSampleInScreenPixelsInt;
 
               if (this.options.customDrawFunction) {
-                this.options.customDrawFunction({ values, context, x, y, width, height });
+                this.options.customDrawFunction({
+                  values,
+                  context,
+                  x,
+                  y,
+                  width,
+                  height,
+                  rasterX: xInRasterPixels,
+                  rasterY: yInRasterPixels,
+                  sampleX: w,
+                  sampleY: h,
+                  sampledRaster: tileRasters
+                });
               } else {
                 const color = this.getColor(values);
                 if (color) {

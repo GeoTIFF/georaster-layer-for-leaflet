@@ -42,7 +42,9 @@
         const resolution = 64;
         var layer = new GeoRasterLayer({
           attribution: "Planet",
-          georaster, pixelValuesToColorFn, resolution
+          georaster: georaster,
+          pixelValuesToColorFn: pixelValuesToColorFn,
+          resolution: resolution
         });
         layer.addTo(map);
         map.fitBounds(layer.getBounds());

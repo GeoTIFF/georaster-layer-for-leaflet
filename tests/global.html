@@ -35,7 +35,7 @@
           parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
-              georaster,
+              georaster: georaster,
               resolution: 512,
               pixelValuesToColorFn: function (values) {
                 if (values[0] > 200) return 'brown';

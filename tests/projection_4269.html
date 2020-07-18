@@ -34,7 +34,7 @@
         .then(function (response) { return response.arrayBuffer(); })
         .then(function (arrayBuffer) {
           parseGeoraster(arrayBuffer).then(function (georaster) {
-            var layer = new GeoRasterLayer({ georaster });
+            var layer = new GeoRasterLayer({ georaster: georaster });
             layer.addTo(map);
             map.fitBounds(layer.getBounds());
         });
