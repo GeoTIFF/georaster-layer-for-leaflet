@@ -1,7 +1,8 @@
 /* global L, proj4 */
-const chroma = require('chroma-js');
-const isUTM = require('utm-utils/src/isUTM');
-const getProjString = require('utm-utils/src/getProjString');
+import "regenerator-runtime/runtime";
+import chroma from 'chroma-js';
+import isUTM from 'utm-utils/src/isUTM';
+import getProjString from 'utm-utils/src/getProjString';
 
 const EPSG4326 = 4326;
 const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);

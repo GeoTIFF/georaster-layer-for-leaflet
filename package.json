@@ -1,11 +1,11 @@
 {
   "name": "georaster-layer-for-leaflet",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
   "main": "georaster-layer-for-leaflet.bundle.js",
   "unpkg": "./georaster-layer-for-leaflet.browserify.min.js",
   "scripts": {
-    "babel": "babel --presets es2015 georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
+    "babel": "babel georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
     "build": "npm run babel && npm run browserify",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
@@ -39,14 +39,9 @@
     "utm-utils": "^0.1.0"
   },
   "devDependencies": {
-    "babel": "^6.23.0",
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-loader": "^7.1.5",
-    "babel-plugin-add-module-exports": "^0.2.1",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-stage-2": "^6.24.1",
+    "@babel/cli": "^7.10.5",
+    "@babel/core": "^7.10.5",
+    "@babel/preset-env": "^7.10.4",
     "browserify": "^14.5.0",
     "eslint": "^5.16.0",
     "http-server": "^0.12.3",
