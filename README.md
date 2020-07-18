@@ -2,8 +2,15 @@
 Display GeoTIFFs and soon other types of rasters on your Leaflet Map
 
 # Install
-```
+```bash
 npm install georaster-layer-for-leaflet
+```
+
+# GeoRaster Prerequisite
+GeoRasterLayer requires that input be first converted into GeoRaster format.
+You can install GeoRaster with the following command:
+```bash
+npm install georaster
 ```
 
 # Load Package via Script Tag
