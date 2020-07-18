@@ -16,8 +16,10 @@ npm install georaster-layer-for-leaflet
 new GeoRasterLayer({georaster: georaster}).addTo(map);
 ```
 
-# Demo
-https://geotiff.github.io/georaster-layer-for-leaflet-example/
+# Demos
+- https://geotiff.github.io/georaster-layer-for-leaflet-example/
+- https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/load-file.html
+- More Here: https://github.com/GeoTIFF/georaster-layer-for-leaflet-example
 
 # Why
 - Super faster rendering thanks to a simple nearest neighbor interpolation
