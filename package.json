@@ -1,16 +1,17 @@
 {
   "name": "georaster-layer-for-leaflet",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
   "main": "georaster-layer-for-leaflet.bundle.js",
-  "unpkg": "./georaster-layer-for-leaflet.browserify.min.js",
+  "unpkg": "./georaster-layer-for-leaflet.min.js",
   "scripts": {
     "babel": "babel georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
     "build": "npm run babel && npm run browserify",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
     "lint": "eslint georaster-layer-for-leaflet.js",
-    "test": "HOST=0.0.0.0 http-server --cors"
+    "test": "HOST=0.0.0.0 http-server --cors",
+    "webpack": "webpack --config=webpack.config.js"
   },
   "repository": {
     "type": "git",
@@ -36,16 +37,20 @@
   "homepage": "https://github.com/GeoTIFF/georaster-layer-for-leaflet#readme",
   "dependencies": {
     "chroma-js": "^1.4.0",
+    "regenerator-runtime": "^0.13.5",
     "utm-utils": "^0.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
+    "@babel/plugin-transform-template-literals": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
+    "babel-loader": "^8.1.0",
     "browserify": "^14.5.0",
     "eslint": "^5.16.0",
     "http-server": "^0.12.3",
-    "webpack": "^3.12.0"
+    "webpack": "^3.12.0",
+    "webpack-cli": "^3.3.12"
   },
   "peerDependencies": {
     "georaster": "^1.1.0"
