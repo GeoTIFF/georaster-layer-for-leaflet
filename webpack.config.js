@@ -1,4 +1,5 @@
 const path = require('path');
+const { readFileSync } = require('fs');
 
 module.exports = {
   entry: './georaster-layer-for-leaflet.js',
@@ -9,8 +10,11 @@ module.exports = {
   module: {
     rules: [
         {
-          test: /\.m?js$/,
-          use: 'babel-loader'
+            test: /\.m?js$/,
+            use: {
+                loader: 'babel-loader',
+                options: JSON.parse(readFileSync(".babelrc.json", 'utf-8'))
+            }
       }
     ]      
   }
