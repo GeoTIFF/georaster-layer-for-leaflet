@@ -30,14 +30,14 @@
       var url_to_geotiff_file = "./spam2010V1r1_global_H_WHEA_A.tif";
 
       fetch(url_to_geotiff_file)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-          parseGeoraster(arrayBuffer).then(georaster => {
+        .then(function (response) { return response.arrayBuffer(); })
+        .then(function (arrayBuffer) {
+          parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
               georaster,
               resolution: 512,
-              pixelValuesToColorFn: values => {
+              pixelValuesToColorFn: function (values) {
                 if (values[0] > 200) return 'brown';
               }
             });

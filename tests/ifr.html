@@ -29,7 +29,7 @@
       }).addTo(map);
 
       var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/ENR_L01_4326.tif";
-      parseGeoraster(url_to_geotiff_file, undefined, true).then(georaster => {
+      parseGeoraster(url_to_geotiff_file, undefined, true).then(function (georaster) {
         console.log("georaster:", georaster);
         var layer = new GeoRasterLayer({
           georaster,

@@ -53,8 +53,8 @@
       Promise.all([
         parseGeoraster(band4URL),
         parseGeoraster(band5URL)
-      ]).then(georasters => {
-        var pixelValuesToColorFn = values => {
+      ]).then(function (georasters) {
+        var pixelValuesToColorFn = function (values) {
           const [ RED, NIR ] = values;
           const dividend = NIR - RED;
           const divisor = NIR + RED;

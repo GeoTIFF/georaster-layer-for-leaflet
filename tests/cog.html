@@ -29,10 +29,10 @@
       }).addTo(map);
 
       const rasterUrl = "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif";
-      parseGeoraster(rasterUrl).then(georaster => {
+      parseGeoraster(rasterUrl).then(function (georaster) {
         const { noDataValue } = georaster;
-        var pixelValuesToColorFn = values => {
-          if (values.some(value => value === noDataValue)) {
+        var pixelValuesToColorFn = function (values) {
+          if (values.some(function (value) { return value === noDataValue; })) {
             return 'rgba(0,0,0,0.0)';
           } else {
             const [r, g, b] = values;

@@ -30,9 +30,9 @@
       var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/rgb_paletted.tiff";
 
       fetch(url_to_geotiff_file)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-          parseGeoraster(arrayBuffer).then(georaster => {
+        .then(function (response) { return response.arrayBuffer(); })
+        .then(function (arrayBuffer) {
+          parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
               georaster,

@@ -31,9 +31,9 @@
       var url_to_geotiff_file = "https://geotiff.github.io/georaster-layer-for-leaflet-example/example_3857.tif";
 
       fetch(url_to_geotiff_file)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-          parseGeoraster(arrayBuffer).then(georaster => {
+        .then(function (response) { return response.arrayBuffer(); })
+        .then(function (arrayBuffer) {
+          parseGeoraster(arrayBuffer).then(function (georaster) {
             var layer = new GeoRasterLayer({
               debugLevel: 2,
               georaster
