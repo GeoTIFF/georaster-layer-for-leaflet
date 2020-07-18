@@ -1,10 +1,7 @@
 /* global L, proj4 */
-const {
-  isUTM,
-  getProj4String,
-} = require('./utils/utm.js');
-
 const chroma = require('chroma-js');
+const isUTM = require('utm-utils/src/isUTM');
+const getProjString = require('utm-utils/src/getProjString');
 
 const EPSG4326 = 4326;
 const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
@@ -383,7 +380,7 @@ const GeoRasterLayer = L.GridLayer.extend({
 
   getProjectionString: function (projection) {
     if (isUTM(projection)) {
-      return getProj4String(projection);
+      return getProjString(projection);
     }
     return `EPSG:${projection}`;
   },

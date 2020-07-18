@@ -5,11 +5,9 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 /* global L, proj4 */
-var _require = require('./utils/utm.js'),
-    isUTM = _require.isUTM,
-    getProj4String = _require.getProj4String;
-
 var chroma = require('chroma-js');
+var isUTM = require('utm-utils/src/isUTM');
+var getProjString = require('utm-utils/src/getProjString');
 
 var EPSG4326 = 4326;
 var PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
@@ -465,7 +463,7 @@ var GeoRasterLayer = L.GridLayer.extend({
 
   getProjectionString: function getProjectionString(projection) {
     if (isUTM(projection)) {
-      return getProj4String(projection);
+      return getProjString(projection);
     }
     return 'EPSG:' + projection;
   },
