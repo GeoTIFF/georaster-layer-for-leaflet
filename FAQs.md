@@ -12,6 +12,12 @@ GeoRasterLayer looks for proj4 when you have loaded a raster (e.g. GeoTIFF) that
 <script src="https://unpkg.com/proj4"></script>
 ```
 
+### How do I convert my GeoTIFF into a Cloud Optimized GeoTIFF?
+You will first have to install [gdal](https://gdal.org/) and then run the following commands, assuming you start with a GeoTIFF named example.tif:
+```bash
+gdal_translate example.tif cog.tif -co TILED=YES -co COMPRESS=DEFLATE
+gdaladdo -r average cog.tif  2 4 8 16 32
+```
 
 ### I don't see my question here.
 This is a community project and doesn't work without contributions from people like you.  You're welcome to add this question via a Github Pull Request.
