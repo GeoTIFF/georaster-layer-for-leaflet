@@ -3,7 +3,8 @@ import "regenerator-runtime/runtime";
 import chroma from 'chroma-js';
 import isUTM from 'utm-utils/src/isUTM';
 import getProjString from 'utm-utils/src/getProjString';
-import proj4 from 'proj4';
+import * as proj4 from 'proj4'
+
 
 const EPSG4326 = 4326;
 const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
