@@ -8,6 +8,8 @@ var _isUTM = _interopRequireDefault(require("utm-utils/src/isUTM"));
 
 var _getProjString = _interopRequireDefault(require("utm-utils/src/getProjString"));
 
+var _proj = _interopRequireDefault(require("proj4"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
@@ -568,11 +570,11 @@ var GeoRasterLayer = L.GridLayer.extend({
   },
   initProjector: function initProjector() {
     if (this.isSupportedProjection(this.projection)) {
-      if (!proj4) {
+      if (!_proj.default) {
         throw 'proj4 must be found in the global scope in order to load a raster that uses a UTM projection';
       }
 
-      this.projector = proj4(this.getProjectionString(this.projection), "EPSG:".concat(EPSG4326));
+      this.projector = (0, _proj.default)(this.getProjectionString(this.projection), "EPSG:".concat(EPSG4326));
       if (this.debugLevel >= 1) console.log('projector set');
     }
   },
