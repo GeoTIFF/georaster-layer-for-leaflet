@@ -3,7 +3,7 @@ import "regenerator-runtime/runtime";
 import chroma from 'chroma-js';
 import isUTM from 'utm-utils/src/isUTM';
 import getProjString from 'utm-utils/src/getProjString';
-import * as proj4 from 'proj4'
+import proj4 from 'proj4'
 
 
 const EPSG4326 = 4326;
