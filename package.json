@@ -8,6 +8,7 @@
     "babel": "babel georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
     "build": "npm run babel && npm run browserify && npm run webpack",
+    "format": "prettier --arrow-parens=avoid --trailing-comma=none --print-width=100 --write georaster-layer-for-leaflet.js",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
     "lint": "eslint georaster-layer-for-leaflet.js",
     "test": "HOST=0.0.0.0 http-server --cors",
@@ -49,6 +50,7 @@
     "browserify": "^14.5.0",
     "eslint": "^5.16.0",
     "http-server": "^0.12.3",
+    "prettier": "^2.1.2",
     "webpack": "^3.12.0",
     "webpack-cli": "^3.3.12"
   },
