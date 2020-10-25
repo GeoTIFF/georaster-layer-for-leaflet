@@ -8,10 +8,11 @@
     "babel": "babel georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
     "build": "npm run babel && npm run browserify && npm run webpack",
-    "format": "prettier --arrow-parens=avoid --trailing-comma=none --print-width=100 --write georaster-layer-for-leaflet.js",
+    "dev": "concurrently \"WEBPACK_WATCH=true npm run webpack\" \"npm run serve\"",
+    "format": "prettier --arrow-parens=avoid --trailing-comma=none --print-width=120 --write georaster-layer-for-leaflet.js",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
     "lint": "eslint georaster-layer-for-leaflet.js",
-    "test": "HOST=0.0.0.0 http-server --cors",
+    "serve": "HOST=0.0.0.0 http-server --cors",
     "webpack": "webpack --config=webpack.config.js"
   },
   "repository": {
@@ -48,6 +49,7 @@
     "@babel/preset-env": "^7.10.4",
     "babel-loader": "^8.1.0",
     "browserify": "^14.5.0",
+    "concurrently": "^5.3.0",
     "eslint": "^5.16.0",
     "http-server": "^0.12.3",
     "prettier": "^2.1.2",
