@@ -19,6 +19,7 @@
     <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/chroma-js"></script>
     <script src="../georaster-layer-for-leaflet.min.js"></script>
     <script>
       var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/nt_20201024_f18_nrt_s.tif";
@@ -33,9 +34,17 @@
                 // read more here: https://leafletjs.com/examples/crs-simple/crs-simple.html
                 crs: L.CRS.Simple
             });
+
+            var scale = chroma.scale(['darkblue', 'lightblue']).domain([0, 100]);
+
             var layer = new GeoRasterLayer({
               georaster: georaster,
-              resolution: 512
+              resolution: 512,
+              pixelValuesToColorFn: function (values) {
+                const value = values[0];
+                if (value < 0) return 'rgb(25, 25, 25)';
+                return scale(value).hex();
+              }
             });
             layer.addTo(map);
             map.fitBounds(layer.getBounds());
