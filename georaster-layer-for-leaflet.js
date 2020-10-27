@@ -6,6 +6,10 @@ import getProjString from "utm-utils/src/getProjString";
 
 const EPSG4326 = 4326;
 const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
+const MAX_NORTHING = 1000;
+const MAX_EASTING = 1000;
+const ORIGIN = [0, 0];
+
 const GeoRasterLayer = L.GridLayer.extend({
   initialize: function (options) {
     try {
@@ -14,9 +18,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       } else if (options.georaster) {
         this.georasters = [options.georaster];
       } else {
-        throw new Error(
-          "You must initialize a GeoRasterLayer with a georaster or georasters value"
-        );
+        throw new Error("You must initialize a GeoRasterLayer with a georaster or georasters value");
       }
 
       /*
@@ -51,6 +53,9 @@ const GeoRasterLayer = L.GridLayer.extend({
         });
       }
 
+      // used later if simple projection
+      this.ratio = this.height / this.width;
+
       if (this.sourceType === "url") {
         if (!options.updateWhenIdle) options.updateWhenIdle = false;
         if (!options.updateWhenZooming) options.updateWhenZooming = true;
@@ -76,9 +81,6 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.chroma = chroma;
       this.scale = chroma.scale();
 
-      this.initProjector();
-      this.initBounds();
-      options.bounds = this._bounds;
       L.setOptions(this, options);
 
       /*
@@ -135,18 +137,18 @@ const GeoRasterLayer = L.GridLayer.extend({
       const mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
       if (this.debugLevel >= 1) console.log("mapPoint:", mapPoint);
 
-      const { lat, lng } = this._map.unproject(mapPoint, coords.z);
+      const { lat, lng } = this.getMap().unproject(mapPoint, coords.z);
 
       if (this.projection === EPSG4326) {
         return {
           y: Math.floor((ymax - lat) / this.pixelHeight),
           x: Math.floor((lng - xmin) / this.pixelWidth)
         };
-      } else if (this.projector) {
+      } else if (this.getProjector()) {
         /* source raster doesn't use latitude and longitude,
            so need to reproject point from lat/long to projection of raster
         */
-        const [x, y] = this.projector.inverse([lng, lat]);
+        const [x, y] = this.getProjector().inverse([lng, lat]);
         if (x === Infinity || y === Infinity) {
           if (this.debugLevel >= 1) console.error("projector converted", [lng, lat], "to", [x, y]);
         }
@@ -159,10 +161,7 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     // careful not to flip min_y/max_y here
     const topLeft = rasterCoordsForTileCoords(0, 0);
-    const bottomRight = rasterCoordsForTileCoords(
-      numberOfSamplesDown - 1,
-      numberOfSamplesAcross - 1
-    );
+    const bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
 
     const getValuesOptions = {
       bottom: bottomRight.y,
@@ -175,13 +174,12 @@ const GeoRasterLayer = L.GridLayer.extend({
     if (!Object.values(getValuesOptions).every(isFinite)) {
       console.error("getRasters failed because not all values are finite:", getValuesOptions);
     } else {
-      return Promise.all(
-        this.georasters.map(georaster => georaster.getValues(getValuesOptions))
-      ).then(valuesByGeoRaster =>
-        valuesByGeoRaster.reduce((result, values) => {
-          result = result.concat(values);
-          return result;
-        }, [])
+      return Promise.all(this.georasters.map(georaster => georaster.getValues(getValuesOptions))).then(
+        valuesByGeoRaster =>
+          valuesByGeoRaster.reduce((result, values) => {
+            result = result.concat(values);
+            return result;
+          }, [])
       );
     }
   },
@@ -189,13 +187,18 @@ const GeoRasterLayer = L.GridLayer.extend({
   createTile: function (coords, done) {
     let error;
 
+    const inSimpleCRS = this.getMap().options.crs === L.CRS.Simple;
+
     // Unpacking values for increased speed
-    const { pixelHeight, pixelWidth, rasters, xmin, ymax } = this;
+    const { rasters, xmin, ymax } = this;
     const rasterHeight = this.height;
     const rasterWidth = this.width;
 
-    // these values are used so we don't try to sample outside of the raster
-    const { minLng, maxLng, maxLat, minLat } = this;
+    const pixelHeight = inSimpleCRS ? this.getBounds()._northEast.lat / rasterHeight : this.pixelHeight;
+    const pixelWidth = inSimpleCRS ? this.getBounds()._northEast.lng / rasterWidth : this.pixelWidth;
+
+    // these values are used, so we don't try to sample outside of the raster
+    const { xMinOfLayer, xMaxOfLayer, yMinOfLayer, yMaxOfLayer } = this;
 
     /* This tile is the square piece of the Leaflet map that we draw on */
     const tile = L.DomUtil.create("canvas", "leaflet-tile");
@@ -203,43 +206,28 @@ const GeoRasterLayer = L.GridLayer.extend({
     tile.width = this.tileWidth;
     const context = tile.getContext("2d");
 
-    const bounds = this._tileCoordsToBounds(coords);
+    const boundsOfTile = this._tileCoordsToBounds(coords);
 
-    const minLngOfTile = bounds.getWest();
-    const maxLngOfTile = bounds.getEast();
-    const minLatOfTile = bounds.getSouth();
-    const maxLatOfTile = bounds.getNorth();
+    const xMinOfTileInMapCRS = boundsOfTile.getWest();
+    const xMaxOfTileInMapCRS = boundsOfTile.getEast();
+    const yMinOfTileInMapCRS = boundsOfTile.getSouth();
+    const yMaxOfTileInMapCRS = boundsOfTile.getNorth();
 
     let rasterPixelsAcross, rasterPixelsDown;
-    if (this.projection === EPSG4326) {
+    if (inSimpleCRS || this.projection === EPSG4326) {
       // width of the Leaflet tile in number of pixels from original raster
-      rasterPixelsAcross = Math.ceil((maxLngOfTile - minLngOfTile) / pixelWidth);
-      rasterPixelsDown = Math.ceil((maxLatOfTile - minLatOfTile) / pixelHeight);
-    } else if (this.projector) {
+      rasterPixelsAcross = Math.ceil((xMaxOfTileInMapCRS - xMinOfTileInMapCRS) / pixelWidth);
+      rasterPixelsDown = Math.ceil((yMaxOfTileInMapCRS - yMinOfTileInMapCRS) / pixelHeight);
+    } else if (this.getProjector()) {
+      const projector = this.getProjector();
       // convert extent of Leaflet tile to projection of the georaster
-      const topLeft = this.projector.inverse({
-        x: minLngOfTile,
-        y: maxLatOfTile
-      });
-      const topRight = this.projector.inverse({
-        x: maxLngOfTile,
-        y: maxLatOfTile
-      });
-      const bottomLeft = this.projector.inverse({
-        x: minLngOfTile,
-        y: minLatOfTile
-      });
-      const bottomRight = this.projector.inverse({
-        x: maxLngOfTile,
-        y: minLatOfTile
-      });
+      const topLeft = projector.inverse({ x: xMinOfTileInMapCRS, y: yMaxOfTileInMapCRS });
+      const topRight = projector.inverse({ x: xMaxOfTileInMapCRS, y: yMaxOfTileInMapCRS });
+      const bottomLeft = projector.inverse({ x: xMinOfTileInMapCRS, y: yMinOfTileInMapCRS });
+      const bottomRight = projector.inverse({ x: xMaxOfTileInMapCRS, y: yMinOfTileInMapCRS });
 
-      rasterPixelsAcross = Math.ceil(
-        Math.max(topRight.x - topLeft.x, bottomRight.x - bottomLeft.x) / pixelWidth
-      );
-      rasterPixelsDown = Math.ceil(
-        Math.max(topLeft.y - bottomLeft.y, topRight.y - bottomRight.y) / pixelHeight
-      );
+      rasterPixelsAcross = Math.ceil(Math.max(topRight.x - topLeft.x, bottomRight.x - bottomLeft.x) / pixelWidth);
+      rasterPixelsDown = Math.ceil(Math.max(topLeft.y - bottomLeft.y, topRight.y - bottomRight.y) / pixelHeight);
     }
 
     const { resolution } = this.options;
@@ -254,7 +242,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     const widthOfSampleInScreenPixels = this.tileWidth / numberOfSamplesAcross;
     const widthOfSampleInScreenPixelsInt = Math.ceil(widthOfSampleInScreenPixels);
 
-    const map = this._map;
+    const map = this.getMap();
     const tileSize = this.getTileSize();
 
     // this converts tile coordinates (how many tiles down and right)
@@ -283,22 +271,25 @@ const GeoRasterLayer = L.GridLayer.extend({
         const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
         const latWestPoint = L.point(tileNwPoint.x, yCenterInMapPixels);
         const { lat } = map.unproject(latWestPoint, coords.z);
-        if (lat > minLat && lat < maxLat) {
+        if (lat > yMinOfLayer && lat < yMaxOfLayer) {
           const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
-          let yInRasterPixels =
-            this.projection === EPSG4326 ? Math.floor((maxLat - lat) / pixelHeight) : null;
+
+          let yInRasterPixels;
+          if (inSimpleCRS || this.projection === EPSG4326) {
+            yInRasterPixels = Math.floor((yMaxOfLayer - lat) / pixelHeight);
+          } else {
+            yInRasterPixels = null;
+          }
+
           for (let w = 0; w < numberOfSamplesAcross; w++) {
-            const latLngPoint = L.point(
-              tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels,
-              yCenterInMapPixels
-            );
-            const { lng } = map.unproject(latLngPoint, coords.z);
-            if (lng > minLng && lng < maxLng) {
+            const latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
+            const { lng: xOfLayer } = map.unproject(latLngPoint, coords.z);
+            if (xOfLayer > xMinOfLayer && xOfLayer < xMaxOfLayer) {
               let xInRasterPixels;
-              if (this.projection === EPSG4326) {
-                xInRasterPixels = Math.floor((lng - minLng) / pixelWidth);
-              } else if (this.projector) {
-                const inverted = this.projector.inverse({ x: lng, y: lat });
+              if (inSimpleCRS || this.projection === EPSG4326) {
+                xInRasterPixels = Math.floor((xOfLayer - xMinOfLayer) / pixelWidth);
+              } else if (this.getProjector()) {
+                const inverted = this.getProjector().inverse({ x: xOfLayer, y: lat });
                 const yInSrc = inverted.y;
                 yInRasterPixels = Math.floor((ymax - yInSrc) / pixelHeight);
                 if (yInRasterPixels < 0 || yInRasterPixels >= rasterHeight) continue;
@@ -367,33 +358,46 @@ const GeoRasterLayer = L.GridLayer.extend({
 
   // method from https://github.com/Leaflet/Leaflet/blob/bb1d94ac7f2716852213dd11563d89855f8d6bb1/src/layer/ImageOverlay.js
   getBounds: function () {
+    this.initBounds();
     return this._bounds;
   },
 
+  getMap: function () {
+    return this._map || this._mapToAdd;
+  },
+
   _isValidTile: function (coords) {
-    const crs = this._map.options.crs;
+    const crs = this.getMap().options.crs;
 
     if (!crs.infinite) {
       // don't load tile if it's out of bounds and not wrapped
-      const bounds = this._globalTileRange;
+      const globalBounds = this._globalTileRange;
       if (
-        (!crs.wrapLng && (coords.x < bounds.min.x || coords.x > bounds.max.x)) ||
-        (!crs.wrapLat && (coords.y < bounds.min.y || coords.y > bounds.max.y))
+        (!crs.wrapLng && (coords.x < globalBounds.min.x || coords.x > globalBounds.max.x)) ||
+        (!crs.wrapLat && (coords.y < globalBounds.min.y || coords.y > globalBounds.max.y))
       ) {
         return false;
       }
     }
 
-    if (!this.options.bounds) {
+    const bounds = this.getBounds();
+
+    if (!bounds) {
       return true;
     }
 
     const { x, y, z } = coords;
 
-    const layerBounds = L.latLngBounds(this.options.bounds);
+    const layerBounds = L.latLngBounds(bounds);
+
+    const boundsOfTile = this._tileCoordsToBounds(coords);
 
     // check given tile coordinates
-    if (layerBounds.overlaps(this._tileCoordsToBounds(coords))) return true;
+    if (layerBounds.overlaps(boundsOfTile)) return true;
+
+    // if not within the original confines of the earth return false
+    // we don't want wrapping if using Simple CRS
+    if (crs === L.CRS.Simple) return false;
 
     // width of the globe in tiles at the given zoom level
     const width = Math.pow(2, z);
@@ -416,9 +420,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       return this.options.pixelValuesToColorFn(values);
     } else {
       const numberOfValues = values.length;
-      const haveDataForAllBands = values.every(
-        value => value !== undefined && value !== this.noDataValue
-      );
+      const haveDataForAllBands = values.every(value => value !== undefined && value !== this.noDataValue);
       if (haveDataForAllBands) {
         if (numberOfValues == 1) {
           const { mins, ranges } = this.georasters[0];
@@ -441,6 +443,7 @@ const GeoRasterLayer = L.GridLayer.extend({
   },
 
   isSupportedProjection: function (projection) {
+    if (!projection) projection = this.projection;
     return isUTM(projection) || PROJ4_SUPPORTED_PROJECTIONS.has(projection);
   },
 
@@ -451,39 +454,54 @@ const GeoRasterLayer = L.GridLayer.extend({
     return `EPSG:${projection}`;
   },
 
-  initBounds: function (georaster) {
-    const { debugLevel, projection, xmin, xmax, ymin, ymax } = this;
-    if (debugLevel >= 1) console.log("this.projection is", projection);
-    if (projection === EPSG4326) {
-      if (debugLevel >= 1) console.log(`georaster projection is in ${EPSG4326}`);
-      const minLatWest = L.latLng(ymin, xmin);
-      const maxLatEast = L.latLng(ymax, xmax);
-      this._bounds = L.latLngBounds(minLatWest, maxLatEast);
-    } else if (this.isSupportedProjection(projection)) {
-      if (debugLevel >= 1) console.log("projection is UTM or supported by proj4");
-      const bottomLeft = this.projector.forward({ x: xmin, y: ymin });
-      const minLatWest = L.latLng(bottomLeft.y, bottomLeft.x);
-      const topRight = this.projector.forward({ x: xmax, y: ymax });
-      const maxLatEast = L.latLng(topRight.y, topRight.x);
-      this._bounds = L.latLngBounds(minLatWest, maxLatEast);
-    } else {
-      throw `georaster-layer-for-leaflet does not support rasters with the projection ${projection}`;
-    }
+  initBounds: function (options = this.options) {
+    if (!this._bounds) {
+      const { debugLevel, height, width, projection, xmin, xmax, ymin, ymax } = this;
+      // check if map using Simple CRS
+      if (this.getMap().options.crs === L.CRS.Simple) {
+        if (height === width) {
+          this._bounds = L.latLngBounds([ORIGIN, [MAX_NORTHING, MAX_EASTING]]);
+        } else if (height > width) {
+          this._bounds = L.latLngBounds([ORIGIN, [MAX_NORTHING, MAX_EASTING / this.ratio]]);
+        } else if (width > height) {
+          this._bounds = L.latLngBounds([ORIGIN, [MAX_NORTHING * this.ratio, MAX_EASTING]]);
+        }
+      } else if (projection === EPSG4326) {
+        if (debugLevel >= 1) console.log(`georaster projection is in ${EPSG4326}`);
+        const minLatWest = L.latLng(ymin, xmin);
+        const maxLatEast = L.latLng(ymax, xmax);
+        this._bounds = L.latLngBounds(minLatWest, maxLatEast);
+      } else if (this.getProjector()) {
+        if (debugLevel >= 1) console.log("projection is UTM or supported by proj4");
+        const bottomLeft = this.getProjector().forward({ x: xmin, y: ymin });
+        const minLatWest = L.latLng(bottomLeft.y, bottomLeft.x);
+        const topRight = this.getProjector().forward({ x: xmax, y: ymax });
+        const maxLatEast = L.latLng(topRight.y, topRight.x);
+        this._bounds = L.latLngBounds(minLatWest, maxLatEast);
+      } else {
+        throw `georaster-layer-for-leaflet does not support rasters with the projection ${projection}`;
+      }
 
-    // these values are used so we don't try to sample outside of the raster
-    this.minLng = this._bounds.getWest();
-    this.maxLng = this._bounds.getEast();
-    this.maxLat = this._bounds.getNorth();
-    this.minLat = this._bounds.getSouth();
+      // these values are used so we don't try to sample outside of the raster
+      this.xMinOfLayer = this._bounds.getWest();
+      this.xMaxOfLayer = this._bounds.getEast();
+      this.yMaxOfLayer = this._bounds.getNorth();
+      this.yMinOfLayer = this._bounds.getSouth();
+
+      options.bounds = this._bounds;
+    }
   },
 
-  initProjector: function () {
+  getProjector: function () {
     if (this.isSupportedProjection(this.projection)) {
       if (!proj4) {
         throw "proj4 must be found in the global scope in order to load a raster that uses a UTM projection";
       }
-      this.projector = proj4(this.getProjectionString(this.projection), `EPSG:${EPSG4326}`);
-      if (this.debugLevel >= 1) console.log("projector set");
+      if (!this._projector) {
+        this._projector = proj4(this.getProjectionString(this.projection), `EPSG:${EPSG4326}`);
+        if (this.debugLevel >= 1) console.log("projector set");
+      }
+      return this._projector;
     }
   },
 
