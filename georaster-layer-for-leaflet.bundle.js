@@ -76,7 +76,7 @@ var GeoRasterLayer = L.GridLayer.extend({
         if (!options.keepBuffer) options.keepBuffer = 16;
       }
 
-      if (!options.debugLevel) options.debugLevel = 1;
+      if (!("debugLevel" in options)) options.debugLevel = 1;
       if (!options.keepBuffer) options.keepBuffer = 25;
       if (!options.resolution) options.resolution = Math.pow(2, 5);
       if (options.updateWhenZooming === undefined) options.updateWhenZooming = false;
