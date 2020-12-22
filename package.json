@@ -39,6 +39,7 @@
   "homepage": "https://github.com/GeoTIFF/georaster-layer-for-leaflet#readme",
   "dependencies": {
     "chroma-js": "^1.4.0",
+    "lodash": "^4.17.20",
     "regenerator-runtime": "^0.13.5",
     "utm-utils": "^0.1.0"
   },

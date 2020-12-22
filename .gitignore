@@ -67,3 +67,5 @@ typings/
 *.swp
 
 tests/*.tif.1
+
+.vscode

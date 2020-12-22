@@ -1,44 +1,57 @@
 # georaster-layer-for-leaflet
+
 Display GeoTIFFs and soon other types of rasters on your Leaflet Map
 
-# Install
+## Install
+
 ```bash
 npm install georaster-layer-for-leaflet
 ```
 
-# GeoRaster Prerequisite
+## GeoRaster Prerequisite
+
 GeoRasterLayer requires that input be first converted into GeoRaster format.
 You can install GeoRaster with the following command:
+
 ```bash
 npm install georaster
 ```
 
-# Load Package via Script Tag
+## Load Package via Script Tag
+
 ```html
 <script src="https://unpkg.com/georaster-layer-for-leaflet/georaster-layer-for-leaflet.browserify.min.js"></script>
 ```
 
-# Usage
-```
+## Usage
+
+```javascript
 new GeoRasterLayer({georaster: georaster}).addTo(map);
 ```
 
-# Demos
-- https://geotiff.github.io/georaster-layer-for-leaflet-example/
-- https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/load-file.html
-- More Here: https://github.com/GeoTIFF/georaster-layer-for-leaflet-example
+## Demos
 
-# Why
+- <https://geotiff.github.io/georaster-layer-for-leaflet-example/>
+- <https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/load-file.html>
+- More Here: <https://github.com/GeoTIFF/georaster-layer-for-leaflet-example>
+
+## Why
+
 - Super faster rendering thanks to a simple nearest neighbor interpolation
 - Use of web workers means seamless integration that doesn't block main thread
 - Loads large geotiffs greater than a hundred megabytes
 - Supports custom rendering including custom colors and context drawing
 - Doesn't depend on WebGL
 
+## The GeoRasterLayer Class
 
-# Longer Usage Example
-Source Code: https://github.com/GeoTIFF/georaster-layer-for-leaflet-example/blob/master/main.js
-```
+A custom class for rendering GeoTiff's (COG's) on a leaflet map. The layer extends L.Gridlayer see the [docs](https://leafletjs.com/reference-1.7.1.html#gridlayer) for inherited options and methods.
+
+### Usage Example
+
+Source Code: <https://github.com/GeoTIFF/georaster-layer-for-leaflet-example/blob/master/main.js>
+
+```javascript
 var parse_georaster = require("georaster");
 
 var GeoRasterLayer = require("georaster-layer-for-leaflet");
@@ -84,11 +97,23 @@ fetch(url_to_geotiff_file)
 });
 ```
 
-# Advanced Capabilities
+<!-- ## Options -->
+<!-- todo: add a table of options for GeoRasterLayer -->
+
+### Methods
+
+| Method         | Returns | Description                                                                                                          |
+| -------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| updateColors() | this    | Causes the tiles to redraw without clearing all them first. It uses the updated `pixelValuesToColor` function |
+
+## Advanced Capabilities
+
 Please read about our advanced capabilities including custom context drawing functions and displaying directional arrows in [ADVANCED.md](ADVANCED.md).
 
-# More Questions
+## More Questions
+
 Check out our [Frequently Asked Questions](FAQs.md)
 
-# Support
+## Support
+
 Contact the package author, Daniel J. Dufour, at daniel.j.dufour@gmail.com
