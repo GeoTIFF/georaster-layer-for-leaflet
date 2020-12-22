@@ -447,7 +447,7 @@ const GeoRasterLayer = L.GridLayer.extend({
   },
 
   /**
-   * The callback used to determine the colour based on the values of the pixel
+   * The callback used to determine the colour based on the values of each pixel
    *
    * @callback pixelValuesToColor
    * @param {array | number} values - The pixel value
@@ -455,7 +455,7 @@ const GeoRasterLayer = L.GridLayer.extend({
    */
 
   /**
-   * Redraws the active map tiles updating the pixel values using the supplies callback
+   * Redraws the active map tiles updating the pixel values using the supplied callback
    * @param {pixelValuesToColor} pixelValuesToColor - Callback that handles getting the pixel color
    */
   updateColors(pixelValuesToColor) {
