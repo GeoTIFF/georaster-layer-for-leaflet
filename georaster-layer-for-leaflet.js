@@ -18,7 +18,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       } else if (options.georaster) {
         this.georasters = [options.georaster];
       } else {
-        throw new Error("You must initialize a GeoRasterLayer with a georaster or georasters value");
+        throw new Error("You initialized a GeoRasterLayer without a georaster or georasters value.");
       }
 
       /*
@@ -185,6 +185,16 @@ const GeoRasterLayer = L.GridLayer.extend({
   },
 
   createTile: function (coords, done) {
+    /* This tile is the square piece of the Leaflet map that we draw on */
+    const tile = L.DomUtil.create("canvas", "leaflet-tile");
+    tile.height = this.tileHeight;
+    tile.width = this.tileWidth;
+    const context = tile.getContext("2d");
+
+    return this.drawTile({ tile, coords, context, done });
+  },
+
+  drawTile: function ({ tile, coords, context, done }) {
     let error;
 
     const inSimpleCRS = this.getMap().options.crs === L.CRS.Simple;
@@ -199,13 +209,6 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     // these values are used, so we don't try to sample outside of the raster
     const { xMinOfLayer, xMaxOfLayer, yMinOfLayer, yMaxOfLayer } = this;
-
-    /* This tile is the square piece of the Leaflet map that we draw on */
-    const tile = L.DomUtil.create("canvas", "leaflet-tile");
-    tile.height = this.tileHeight;
-    tile.width = this.tileWidth;
-    const context = tile.getContext("2d");
-
     const boundsOfTile = this._tileCoordsToBounds(coords);
 
     const xMinOfTileInMapCRS = boundsOfTile.getWest();
@@ -309,7 +312,7 @@ const GeoRasterLayer = L.GridLayer.extend({
                   return band[yInRasterPixels][xInRasterPixels];
                 });
               } else {
-                done("no rasters are available for, so skipping value generation");
+                done && done("no rasters are available for, so skipping value generation");
                 return;
               }
 
@@ -349,7 +352,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         }
       }
 
-      done(error, tile);
+      done && done(error, tile);
     }, 0);
 
     // return the tile so it can be rendered on screen
@@ -440,6 +443,57 @@ const GeoRasterLayer = L.GridLayer.extend({
         }
       }
     }
+  },
+
+  /**
+   * The callback used to determine the colour based on the values of each pixel
+   *
+   * @callback pixelValuesToColorFn
+   * @param {array | number} values - The pixel value depends on the image being rendered. Multiband images will be a tuple of one value per band. Single band images will be a single number
+   * @returns {string} - Any valid CSS color string
+   */
+
+  /**
+   * Redraws the active map tiles updating the pixel values using the supplie callback
+   * @param {pixelValuesToColorFn} pixelValuesToColorFn - Callback that handles getting the pixel color
+   * @param {Object} [options] - Configuration options passed to the method
+   * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
+   */
+  updateColors(pixelValuesToColorFn, { debugLevel = this.debugLevel } = {}) {
+    if (!pixelValuesToColorFn) {
+      throw new Error("Missing pixelValuesToColorFn function");
+    }
+
+    if (debugLevel >= 1) console.log("Start updating active tile pixel values");
+
+    // update option to ensure correct colours at other zoom levels.
+    this.options.pixelValuesToColorFn = pixelValuesToColorFn;
+
+    const tiles = this.getActiveTiles();
+    if (!tiles) {
+      console.error("No active tiles available");
+      return this;
+    }
+
+    if (debugLevel >= 1) console.log("Active tiles fetched", tiles);
+
+    tiles.forEach(tile => {
+      const { coords, el } = tile;
+      this.drawTile({ tile, coords, context: el.getContext("2d") });
+    });
+    if (debugLevel >= 1) console.log("Finished updating active tile colours");
+    return this;
+  },
+
+  getTiles() {
+    // transform _tiles object collection into an array
+    return Object.values(this._tiles);
+  },
+
+  getActiveTiles() {
+    const tiles = this.getTiles();
+    // only return valid tiles
+    return tiles.filter(tile => this._isValidTile(tile.coords));
   },
 
   isSupportedProjection: function (projection) {
