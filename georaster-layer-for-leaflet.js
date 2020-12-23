@@ -459,12 +459,12 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {Object} [options] - Configuration options passed to the method
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  updateColors(pixelValuesToColorFn, { debugLevel = 0 } = {}) {
+  updateColors(pixelValuesToColorFn, { debugLevel = this.debugLevel } = {}) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
 
-    if (debugLevel >= 1 || this.debugLevel >= 1) console.log("Start updating active tile pixel values");
+    if (debugLevel >= 1) console.log("Start updating active tile pixel values");
 
     // update option to ensure correct colours at other zoom levels.
     this.options.pixelValuesToColorFn = pixelValuesToColorFn;
@@ -475,13 +475,13 @@ const GeoRasterLayer = L.GridLayer.extend({
       return this;
     }
 
-    if (debugLevel >= 1 || this.debugLevel >= 1) console.log("Active tiles fetched", tiles);
+    if (debugLevel >= 1) console.log("Active tiles fetched", tiles);
 
     tiles.forEach(tile => {
       const { coords, el } = tile;
       this.drawTile({ tile, coords, context: el.getContext("2d") });
     });
-    if (debugLevel >= 1 || this.debugLevel >= 1) console.log("Finished updating active tile colours");
+    if (debugLevel >= 1) console.log("Finished updating active tile colours");
     return this;
   },
 

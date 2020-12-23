@@ -102,9 +102,9 @@ fetch(url_to_geotiff_file)
 
 ### Methods
 
-| Method                                    | Returns | Description                                                                                                                                                                                                                     |
-| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| updateColors(pixelValuesToColorFn, options) | this    | Causes the tiles to redraw without clearing them first. It uses the updated `pixelValuesToColorFn` function. You can leave the console debugs for this method on by setting `debugLevel = 1` in the options (It defaults to 0). |
+| Method                                      | Returns | Description                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| updateColors(pixelValuesToColorFn, options) | this    | Causes the tiles to redraw without clearing them first. It uses the updated `pixelValuesToColorFn` function. You can set a debugLevel specific to this function by passing in an options object with a debugLevel property.  For example, you can turn on the console debugs for this method by setting `debugLevel = 1` in the options (even if you created the layer with `debugLevel = 0`). |
 
 ## Advanced Capabilities
 
