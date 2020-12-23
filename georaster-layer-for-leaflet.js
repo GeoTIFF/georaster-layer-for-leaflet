@@ -1,7 +1,6 @@
 /* global L, proj4 */
 import "regenerator-runtime/runtime";
 import chroma from "chroma-js";
-import filter from "lodash/filter";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
 
@@ -19,7 +18,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       } else if (options.georaster) {
         this.georasters = [options.georaster];
       } else {
-        throw new Error("You must initialize a GeoRasterLayer without a georaster or georasters value");
+        throw new Error("You initialized a GeoRasterLayer without a georaster or georasters value.");
       }
 
       /*
@@ -192,10 +191,10 @@ const GeoRasterLayer = L.GridLayer.extend({
     tile.width = this.tileWidth;
     const context = tile.getContext("2d");
 
-    return this.drawTile(tile, coords, context, done);
+    return this.drawTile({ tile, coords, context, done });
   },
 
-  drawTile: function (tile, coords, ctx, done) {
+  drawTile: function ({ tile, coords, context, done }) {
     let error;
 
     const inSimpleCRS = this.getMap().options.crs === L.CRS.Simple;
@@ -330,7 +329,7 @@ const GeoRasterLayer = L.GridLayer.extend({
               if (this.options.customDrawFunction) {
                 this.options.customDrawFunction({
                   values,
-                  ctx,
+                  context,
                   x,
                   y,
                   width,
@@ -344,8 +343,8 @@ const GeoRasterLayer = L.GridLayer.extend({
               } else {
                 const color = this.getColor(values);
                 if (color) {
-                  ctx.fillStyle = color;
-                  ctx.fillRect(x, y, width, height);
+                  context.fillStyle = color;
+                  context.fillRect(x, y, width, height);
                 }
               }
             }
@@ -449,25 +448,26 @@ const GeoRasterLayer = L.GridLayer.extend({
   /**
    * The callback used to determine the colour based on the values of each pixel
    *
-   * @callback pixelValuesToColor
-   * @param {array | number} values - The pixel value
+   * @callback pixelValuesToColorFn
+   * @param {array | number} values - The pixel value depends on the image being rendered. Multiband images will be a tuple of one value per band. Single band images will be a single number
    * @returns {string} - Any valid CSS color string
    */
 
   /**
-   * Redraws the active map tiles updating the pixel values using the supplied callback
-   * @param {pixelValuesToColor} pixelValuesToColor - Callback that handles getting the pixel color
+   * Redraws the active map tiles updating the pixel values using the supplie callback
+   * @param {pixelValuesToColorFn} pixelValuesToColorFn - Callback that handles getting the pixel color
+   * @param {Object} [options] - Configuration options passed to the method
+   * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  updateColors(pixelValuesToColor) {
-    if (!pixelValuesToColor) {
-      console.error("Missing pixelValuesToColor function");
-      return this;
+  updateColors(pixelValuesToColorFn, { debugLevel = 0 } = {}) {
+    if (!pixelValuesToColorFn) {
+      throw new Error("Missing pixelValuesToColorFn function");
     }
 
-    if (this.debugLevel >= 1) console.log("Start updating active tile pixel values");
+    if (debugLevel >= 1 || this.debugLevel >= 1) console.log("Start updating active tile pixel values");
 
     // update option to ensure correct colours at other zoom levels.
-    this.options.pixelValuesToColorFn = pixelValuesToColor;
+    this.options.pixelValuesToColorFn = pixelValuesToColorFn;
 
     const tiles = this.getActiveTiles();
     if (!tiles) {
@@ -475,25 +475,25 @@ const GeoRasterLayer = L.GridLayer.extend({
       return this;
     }
 
-    if (this.debugLevel >= 1) console.log("Active tiles fetched", tiles);
+    if (debugLevel >= 1 || this.debugLevel >= 1) console.log("Active tiles fetched", tiles);
 
     tiles.forEach(tile => {
       const { coords, el } = tile;
-      this.drawTile(tile, coords, el.getContext("2d"));
+      this.drawTile({ tile, coords, context: el.getContext("2d") });
     });
-    if (this.debugLevel >= 1) console.log("Finished updating active tile colours");
+    if (debugLevel >= 1 || this.debugLevel >= 1) console.log("Finished updating active tile colours");
     return this;
   },
 
   getTiles() {
-    return this._tiles;
+    // transform _tiles object collection into an array
+    return Object.values(this._tiles);
   },
 
   getActiveTiles() {
     const tiles = this.getTiles();
-
     // only return valid tiles
-    return filter(tiles, tile => this._isValidTile(tile.coords));
+    return tiles.filter(tile => this._isValidTile(tile.coords));
   },
 
   isSupportedProjection: function (projection) {

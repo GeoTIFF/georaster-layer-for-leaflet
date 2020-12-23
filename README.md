@@ -45,7 +45,7 @@ new GeoRasterLayer({georaster: georaster}).addTo(map);
 
 ## The GeoRasterLayer Class
 
-A custom class for rendering GeoTiff's (COG's) on a leaflet map. The layer extends L.Gridlayer see the [docs](https://leafletjs.com/reference-1.7.1.html#gridlayer) for inherited options and methods.
+A custom class for rendering GeoTIFF's (including COG's) on a leaflet map. The layer extends L.GridLayer, see the [docs](https://leafletjs.com/reference-1.7.1.html#gridlayer) for inherited options and methods.
 
 ### Usage Example
 
@@ -102,9 +102,9 @@ fetch(url_to_geotiff_file)
 
 ### Methods
 
-| Method         | Returns | Description                                                                                                          |
-| -------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
-| updateColors() | this    | Causes the tiles to redraw without clearing all them first. It uses the updated `pixelValuesToColor` function |
+| Method                                    | Returns | Description                                                                                                                                                                                                                     |
+| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| updateColors(pixelValuesToColorFn, options) | this    | Causes the tiles to redraw without clearing them first. It uses the updated `pixelValuesToColorFn` function. You can leave the console debugs for this method on by setting `debugLevel = 1` in the options (It defaults to 0). |
 
 ## Advanced Capabilities
 

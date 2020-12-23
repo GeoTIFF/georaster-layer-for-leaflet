@@ -97,24 +97,25 @@
         layer = new GeoRasterLayer({
           georasters,
           pixelValuesToColorFn: function(values) {
-            return getColorFromValues(values, 0, 1)
+            return getColorFromValues(values, 0, 1);
           },
           resolution: 64,
-          opacity: 0.5
+          opacity: 0.5,
+          debugLevel: 0
         });
         layer.addTo(map);
         map.fitBounds(layer.getBounds());
       });
 
       const input = document.getElementById("threshold");
-      
+
       // update the image as the threshold changes
       const updateInput = (event) => {
         L.DomEvent.stop(event);
         const { value: min } = event.target;
         layer.updateColors(function(values){
-          return getColorFromValues(values, min, 1)
-        });
+          return getColorFromValues(values, min, 1);
+        }, { debugLevel: 1 });
       };
 
       input.addEventListener("change", updateInput);
