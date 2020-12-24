@@ -9,7 +9,7 @@
     "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
     "build": "npm run babel && npm run browserify && npm run webpack",
     "dev": "concurrently \"WEBPACK_WATCH=true npm run webpack\" \"npm run serve\"",
-    "format": "prettier --arrow-parens=avoid --trailing-comma=none --print-width=120 --write georaster-layer-for-leaflet.js webpack.config.js",
+    "format": "prettier --write georaster-layer-for-leaflet.js webpack.config.js",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
     "lint": "eslint georaster-layer-for-leaflet.js",
     "serve": "HOST=0.0.0.0 http-server --cors",
