@@ -9,6 +9,7 @@ const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
 const MAX_NORTHING = 1000;
 const MAX_EASTING = 1000;
 const ORIGIN = [0, 0];
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 const GeoRasterLayer = L.GridLayer.extend({
   initialize: function (options) {
@@ -62,7 +63,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         if (!options.keepBuffer) options.keepBuffer = 16;
       }
 
-      if (!("debugLevel" in options)) options.debugLevel = 1;
+      if (!("debugLevel" in options)) options.debugLevel = IS_PRODUCTION ? 0 : 1;
       if (!options.keepBuffer) options.keepBuffer = 25;
       if (!options.resolution) options.resolution = Math.pow(2, 5);
       if (options.updateWhenZooming === undefined) options.updateWhenZooming = false;
