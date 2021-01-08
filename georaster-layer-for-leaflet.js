@@ -9,7 +9,8 @@ const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
 const MAX_NORTHING = 1000;
 const MAX_EASTING = 1000;
 const ORIGIN = [0, 0];
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const IS_PRODUCTION =
+  typeof process === "object" && typeof process.env === "object" && process.env.NODE_ENV === "production";
 
 const GeoRasterLayer = L.GridLayer.extend({
   initialize: function (options) {
