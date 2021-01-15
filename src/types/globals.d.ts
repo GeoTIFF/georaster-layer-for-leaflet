@@ -1,4 +1,1 @@
-interface Global {
-  L: any;
-  proj4: any;
-}
+declare var proj4: any;

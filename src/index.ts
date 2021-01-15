@@ -1,8 +1,10 @@
 /* global L, proj4 */
 import "regenerator-runtime/runtime";
+import * as L from "leaflet";
 import chroma from "chroma-js";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
+import type { GeoRasterLayerOptions, Georaster, GetRasterOptions } from "./types";
 
 const EPSG4326 = 4326;
 const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
@@ -11,7 +13,7 @@ const MAX_EASTING = 1000;
 const ORIGIN = [0, 0];
 
 const GeoRasterLayer = L.GridLayer.extend({
-  initialize: function (options) {
+  initialize: function (options: GeoRasterLayerOptions) {
     try {
       if (options.georasters) {
         this.georasters = options.georasters;
@@ -70,8 +72,8 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log("georaster:", options);
 
-      if (this.georasters.every(georaster => typeof georaster.values === "object")) {
-        this.rasters = this.georasters.reduce((result, georaster) => {
+      if (this.georasters.every((georaster: Georaster) => typeof georaster.values === "object")) {
+        this.rasters = this.georasters.reduce((result: Georaster, georaster: Georaster) => {
           result = result.concat(georaster.values);
           return result;
         }, []);
@@ -110,7 +112,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
-  getRasters: function (options) {
+  getRasters: function (options: GetRasterOptions) {
     const {
       tileNwPoint,
       heightOfSampleInScreenPixels,
@@ -130,7 +132,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       This function takes in coordinates in the rendered image tile and
       returns the y and x values in the original raster
     */
-    const rasterCoordsForTileCoords = (h, w) => {
+    const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } => {
       const xCenterInMapPixels = tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
       const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
@@ -176,7 +178,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     } else {
       return Promise.all(this.georasters.map(georaster => georaster.getValues(getValuesOptions))).then(
         valuesByGeoRaster =>
-          valuesByGeoRaster.reduce((result, values) => {
+          valuesByGeoRaster.reduce((result: number[], values) => {
             result = result.concat(values);
             return result;
           }, [])
@@ -195,7 +197,7 @@ const GeoRasterLayer = L.GridLayer.extend({
   },
 
   drawTile: function ({ tile, coords, context, done }) {
-    let error;
+    let error: Error;
 
     const inSimpleCRS = this.getMap().options.crs === L.CRS.Simple;
 
@@ -216,7 +218,8 @@ const GeoRasterLayer = L.GridLayer.extend({
     const yMinOfTileInMapCRS = boundsOfTile.getSouth();
     const yMaxOfTileInMapCRS = boundsOfTile.getNorth();
 
-    let rasterPixelsAcross, rasterPixelsDown;
+    let rasterPixelsAcross: number;
+    let rasterPixelsDown: number;
     if (inSimpleCRS || this.projection === EPSG4326) {
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((xMaxOfTileInMapCRS - xMinOfTileInMapCRS) / pixelWidth);
@@ -277,7 +280,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         if (lat > yMinOfLayer && lat < yMaxOfLayer) {
           const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
 
-          let yInRasterPixels;
+          let yInRasterPixels: number | null;
           if (inSimpleCRS || this.projection === EPSG4326) {
             yInRasterPixels = Math.floor((yMaxOfLayer - lat) / pixelHeight);
           } else {
@@ -288,7 +291,7 @@ const GeoRasterLayer = L.GridLayer.extend({
             const latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
             const { lng: xOfLayer } = map.unproject(latLngPoint, coords.z);
             if (xOfLayer > xMinOfLayer && xOfLayer < xMaxOfLayer) {
-              let xInRasterPixels;
+              let xInRasterPixels: number;
               if (inSimpleCRS || this.projection === EPSG4326) {
                 xInRasterPixels = Math.floor((xOfLayer - xMinOfLayer) / pixelWidth);
               } else if (this.getProjector()) {
@@ -418,12 +421,12 @@ const GeoRasterLayer = L.GridLayer.extend({
     return false;
   },
 
-  getColor: function (values) {
+  getColor: function (values: number[]) {
     if (this.options.pixelValuesToColorFn) {
       return this.options.pixelValuesToColorFn(values);
     } else {
       const numberOfValues = values.length;
-      const haveDataForAllBands = values.every(value => value !== undefined && value !== this.noDataValue);
+      const haveDataForAllBands = values.every((value: number) => value !== undefined && value !== this.noDataValue);
       if (haveDataForAllBands) {
         if (numberOfValues == 1) {
           const { mins, ranges } = this.georasters[0];
@@ -459,7 +462,7 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {Object} [options] - Configuration options passed to the method
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  updateColors(pixelValuesToColorFn, { debugLevel = this.debugLevel } = {}) {
+  updateColors(pixelValuesToColorFn: (values: number[]) => string, { debugLevel = this.debugLevel } = {}) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
