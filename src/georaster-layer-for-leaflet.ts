@@ -1,16 +1,24 @@
-/* global L, proj4 */
+/* global proj4 */
 import "regenerator-runtime/runtime";
 import * as L from "leaflet";
+import type { Coords, DoneCallback, LatLngTuple } from "leaflet";
 import chroma from "chroma-js";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
-import type { GeoRasterLayerOptions, Georaster, GetRasterOptions } from "./types";
+import type {
+  GeoRasterLayerOptions,
+  Georaster,
+  GetRasterOptions,
+  DrawTileOptions,
+  PixelValueToColorFn,
+  Tile
+} from "./types";
 
 const EPSG4326 = 4326;
 const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
 const MAX_NORTHING = 1000;
 const MAX_EASTING = 1000;
-const ORIGIN = [0, 0];
+const ORIGIN: LatLngTuple = [0, 0];
 
 const GeoRasterLayer = L.GridLayer.extend({
   initialize: function (options: GeoRasterLayerOptions) {
@@ -132,7 +140,8 @@ const GeoRasterLayer = L.GridLayer.extend({
       This function takes in coordinates in the rendered image tile and
       returns the y and x values in the original raster
     */
-    const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } => {
+    // todo:<ts-conversion> check this return statement is correct - SFR 2021-01-19
+    const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } | undefined => {
       const xCenterInMapPixels = tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
       const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
@@ -176,9 +185,9 @@ const GeoRasterLayer = L.GridLayer.extend({
     if (!Object.values(getValuesOptions).every(isFinite)) {
       console.error("getRasters failed because not all values are finite:", getValuesOptions);
     } else {
-      return Promise.all(this.georasters.map(georaster => georaster.getValues(getValuesOptions))).then(
+      return Promise.all(this.georasters.map((georaster: Georaster) => georaster.getValues(getValuesOptions))).then(
         valuesByGeoRaster =>
-          valuesByGeoRaster.reduce((result: number[], values) => {
+          valuesByGeoRaster.reduce((result: Georaster, values) => {
             result = result.concat(values);
             return result;
           }, [])
@@ -186,9 +195,9 @@ const GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
-  createTile: function (coords, done) {
+  createTile: function (coords: Coords, done: DoneCallback) {
     /* This tile is the square piece of the Leaflet map that we draw on */
-    const tile = L.DomUtil.create("canvas", "leaflet-tile");
+    const tile = L.DomUtil.create("canvas", "leaflet-tile") as HTMLCanvasElement;
     tile.height = this.tileHeight;
     tile.width = this.tileWidth;
     const context = tile.getContext("2d");
@@ -196,7 +205,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     return this.drawTile({ tile, coords, context, done });
   },
 
-  drawTile: function ({ tile, coords, context, done }) {
+  drawTile: function ({ tile, coords, context, done }: DrawTileOptions) {
     let error: Error;
 
     const inSimpleCRS = this.getMap().options.crs === L.CRS.Simple;
@@ -218,8 +227,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     const yMinOfTileInMapCRS = boundsOfTile.getSouth();
     const yMaxOfTileInMapCRS = boundsOfTile.getNorth();
 
-    let rasterPixelsAcross: number;
-    let rasterPixelsDown: number;
+    let rasterPixelsAcross, rasterPixelsDown;
     if (inSimpleCRS || this.projection === EPSG4326) {
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((xMaxOfTileInMapCRS - xMinOfTileInMapCRS) / pixelWidth);
@@ -257,7 +265,7 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
     setTimeout(async () => {
-      let tileRasters;
+      let tileRasters: Georaster[];
       if (!rasters) {
         tileRasters = await this.getRasters({
           tileNwPoint,
@@ -315,7 +323,7 @@ const GeoRasterLayer = L.GridLayer.extend({
                   return band[yInRasterPixels][xInRasterPixels];
                 });
               } else {
-                done && done("no rasters are available for, so skipping value generation");
+                done && done(Error("no rasters are available for, so skipping value generation"));
                 return;
               }
 
@@ -372,7 +380,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     return this._map || this._mapToAdd;
   },
 
-  _isValidTile: function (coords) {
+  _isValidTile: function (coords: Coords) {
     const crs = this.getMap().options.crs;
 
     if (!crs.infinite) {
@@ -421,12 +429,12 @@ const GeoRasterLayer = L.GridLayer.extend({
     return false;
   },
 
-  getColor: function (values: number[]) {
+  getColor: function (values: number[]): string | undefined {
     if (this.options.pixelValuesToColorFn) {
       return this.options.pixelValuesToColorFn(values);
     } else {
       const numberOfValues = values.length;
-      const haveDataForAllBands = values.every((value: number) => value !== undefined && value !== this.noDataValue);
+      const haveDataForAllBands = values.every(value => value !== undefined && value !== this.noDataValue);
       if (haveDataForAllBands) {
         if (numberOfValues == 1) {
           const { mins, ranges } = this.georasters[0];
@@ -462,7 +470,7 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {Object} [options] - Configuration options passed to the method
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  updateColors(pixelValuesToColorFn: (values: number[]) => string, { debugLevel = this.debugLevel } = {}) {
+  updateColors(pixelValuesToColorFn: PixelValueToColorFn, { debugLevel = this.debugLevel } = {}) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
@@ -480,7 +488,7 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     if (debugLevel >= 1) console.log("Active tiles fetched", tiles);
 
-    tiles.forEach(tile => {
+    tiles.forEach((tile: Tile) => {
       const { coords, el } = tile;
       this.drawTile({ tile, coords, context: el.getContext("2d") });
     });
@@ -488,23 +496,23 @@ const GeoRasterLayer = L.GridLayer.extend({
     return this;
   },
 
-  getTiles() {
+  getTiles(): Tile[] {
     // transform _tiles object collection into an array
     return Object.values(this._tiles);
   },
 
-  getActiveTiles() {
-    const tiles = this.getTiles();
+  getActiveTiles(): Tile[] {
+    const tiles: Tile[] = this.getTiles();
     // only return valid tiles
     return tiles.filter(tile => this._isValidTile(tile.coords));
   },
 
-  isSupportedProjection: function (projection) {
+  isSupportedProjection: function (projection: number) {
     if (!projection) projection = this.projection;
     return isUTM(projection) || PROJ4_SUPPORTED_PROJECTIONS.has(projection);
   },
 
-  getProjectionString: function (projection) {
+  getProjectionString: function (projection: number) {
     if (isUTM(projection)) {
       return getProjString(projection);
     }
@@ -562,7 +570,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
-  same(array, key) {
+  same(array: Georaster[], key: string) {
     return new Set(array.map(item => item[key])).size === 1;
   }
 });
