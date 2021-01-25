@@ -6,8 +6,9 @@ import chroma from "chroma-js";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
 import type {
-  GeoRasterLayerOptions,
+  GeorasterLayerOptions,
   Georaster,
+  GeorasterKeys,
   GetRasterOptions,
   DrawTileOptions,
   PixelValueToColorFn,
@@ -21,7 +22,7 @@ const MAX_EASTING = 1000;
 const ORIGIN: LatLngTuple = [0, 0];
 
 const GeoRasterLayer = L.GridLayer.extend({
-  initialize: function (options: GeoRasterLayerOptions) {
+  initialize: function (options: GeorasterLayerOptions) {
     try {
       if (options.georasters) {
         this.georasters = options.georasters;
@@ -72,6 +73,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         if (!options.keepBuffer) options.keepBuffer = 16;
       }
 
+      // todo: set defaults in descructured options - SFR 2021-01-20
       if (!("debugLevel" in options)) options.debugLevel = 1;
       if (!options.keepBuffer) options.keepBuffer = 25;
       if (!options.resolution) options.resolution = Math.pow(2, 5);
@@ -80,8 +82,9 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log("georaster:", options);
 
+      //! note: Values is missing in type. What should it be? number[][][] - SFR 2021-01-20
       if (this.georasters.every((georaster: Georaster) => typeof georaster.values === "object")) {
-        this.rasters = this.georasters.reduce((result: Georaster, georaster: Georaster) => {
+        this.rasters = this.georasters.reduce((result: number[], georaster: Georaster) => {
           result = result.concat(georaster.values);
           return result;
         }, []);
@@ -175,20 +178,22 @@ const GeoRasterLayer = L.GridLayer.extend({
     const bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
 
     const getValuesOptions = {
-      bottom: bottomRight.y,
+      bottom: bottomRight?.y,
       height: numberOfSamplesDown,
-      left: topLeft.x,
-      right: bottomRight.x,
-      top: topLeft.y,
+      left: topLeft?.x,
+      right: bottomRight?.x,
+      top: topLeft?.y,
       width: numberOfSamplesAcross
     };
+
     if (!Object.values(getValuesOptions).every(isFinite)) {
       console.error("getRasters failed because not all values are finite:", getValuesOptions);
     } else {
+      // !note: The types need confirmation - SFR 2021-01-20
       return Promise.all(this.georasters.map((georaster: Georaster) => georaster.getValues(getValuesOptions))).then(
         valuesByGeoRaster =>
-          valuesByGeoRaster.reduce((result: Georaster, values) => {
-            result = result.concat(values);
+          valuesByGeoRaster.reduce((result: number[][][], values) => {
+            result = result.concat(values as number[][]);
             return result;
           }, [])
       );
@@ -232,6 +237,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((xMaxOfTileInMapCRS - xMinOfTileInMapCRS) / pixelWidth);
       rasterPixelsDown = Math.ceil((yMaxOfTileInMapCRS - yMinOfTileInMapCRS) / pixelHeight);
+      // note: why do we check for getProjector() - SFR 2021-01-20
     } else if (this.getProjector()) {
       const projector = this.getProjector();
       // convert extent of Leaflet tile to projection of the georaster
@@ -570,7 +576,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
-  same(array: Georaster[], key: string) {
+  same(array: Georaster[], key: GeorasterKeys) {
     return new Set(array.map(item => item[key])).size === 1;
   }
 });
