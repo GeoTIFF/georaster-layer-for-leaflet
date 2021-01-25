@@ -9,12 +9,13 @@
     "babel": "babel georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
     "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
     "build": "npm run babel && npm run browserify && npm run webpack",
-    "dev": "concurrently \"WEBPACK_WATCH=true npm run webpack\" \"npm run serve\"",
+    "dev": "concurrently \"npm run serve\"",
     "format": "prettier --write georaster-layer-for-leaflet.js webpack.config.js",
     "fix": "eslint georaster-layer-for-leaflet.js --fix",
     "lint": "eslint georaster-layer-for-leaflet.js",
     "serve": "HOST=0.0.0.0 http-server --cors",
-    "webpack": "webpack --config=webpack.config.js"
+    "webpack": "webpack --config=webpack.config.js",
+    "build:tsc": "tsc --watch"
   },
   "repository": {
     "type": "git",
@@ -39,7 +40,6 @@
   },
   "homepage": "https://github.com/GeoTIFF/georaster-layer-for-leaflet#readme",
   "dependencies": {
-    "@types/leaflet": "^1.5.19",
     "chroma-js": "^1.4.0",
     "regenerator-runtime": "^0.13.5",
     "utm-utils": "^0.1.0"
@@ -50,6 +50,7 @@
     "@babel/plugin-transform-template-literals": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
     "@types/chroma-js": "^2.1.3",
+    "@types/leaflet": "^1.5.21",
     "@types/node": "^14.14.19",
     "@typescript-eslint/eslint-plugin": "^4.11.1",
     "@typescript-eslint/parser": "^4.11.1",

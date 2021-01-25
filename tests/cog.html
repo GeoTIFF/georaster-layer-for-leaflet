@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -15,26 +15,31 @@
   </head>
   <body>
     <div id="map"></div>
-    <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>    
+    <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
-    <script src="../georaster-layer-for-leaflet.min.js"></script>
+    <script src="../dist/georaster-layer-for-leaflet.js"></script>
     <script>
       // initalize leaflet map
-      var map = L.map('map').setView([0, 0], 11);
+      var map = L.map("map").setView([0, 0], 11);
 
       // add OpenStreetMap basemap
-      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      L.tileLayer("http://{s}.tile.osm.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      const rasterUrl = "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif";
+      const rasterUrl =
+        "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif";
       parseGeoraster(rasterUrl).then(function (georaster) {
         const { noDataValue } = georaster;
         var pixelValuesToColorFn = function (values) {
-          if (values.some(function (value) { return value === noDataValue; })) {
-            return 'rgba(0,0,0,0.0)';
+          if (
+            values.some(function (value) {
+              return value === noDataValue;
+            })
+          ) {
+            return "rgba(0,0,0,0.0)";
           } else {
             const [r, g, b] = values;
             return `rgba(${r},${g},${b},.85)`;

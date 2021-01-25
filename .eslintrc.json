@@ -16,6 +16,7 @@
     "plugin:@typescript-eslint/recommended",
     "eslint-config-prettier/@typescript-eslint"
   ],
+  "ignorePatterns": "dist",
   "rules": {
     "@typescript-eslint/ban-ts-comment": "warn",
     "arrow-parens": ["error", "as-needed"],

@@ -1,10 +1,10 @@
 /* global proj4 */
 import "regenerator-runtime/runtime";
 import * as L from "leaflet";
-import type { Coords, DoneCallback, LatLngTuple } from "leaflet";
 import chroma from "chroma-js";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
+import type { Coords, DoneCallback, LatLngTuple } from "leaflet";
 import type {
   GeorasterLayerOptions,
   Georaster,
@@ -94,6 +94,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.chroma = chroma;
       this.scale = chroma.scale();
 
+      // @ts-ignore does not appear to be included in the L type
       L.setOptions(this, options);
 
       /*
