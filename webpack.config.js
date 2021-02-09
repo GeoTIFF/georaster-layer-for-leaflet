@@ -1,23 +1,30 @@
 const path = require("path");
-const { readFileSync } = require("fs");
 
 module.exports = {
   watch: process.env.WEBPACK_WATCH === "true",
-  entry: "./georaster-layer-for-leaflet.js",
+  entry: "./src/georaster-layer-for-leaflet.ts",
+  mode: "production",
   output: {
     filename: "georaster-layer-for-leaflet.min.js",
-    path: path.resolve(__dirname)
+    path: path.resolve(__dirname, "dist"),
+    library: "libraryStarter",
+    libraryTarget: "umd"
   },
   devtool: "source-map",
   module: {
     rules: [
       {
-        test: /\.m?js$/,
+        test: /\.(ts|js)x?$/,
         use: {
-          loader: "babel-loader",
-          options: JSON.parse(readFileSync(".babelrc.json", "utf-8"))
+          loader: "babel-loader"
         }
       }
     ]
+  },
+  resolve: {
+    modules: ["node_modules"]
+  },
+  externals: {
+    leaflet: { root: "L", commonjs: "leaflet", amd: "leaflet", commonjs2: "leaflet" }
   }
 };

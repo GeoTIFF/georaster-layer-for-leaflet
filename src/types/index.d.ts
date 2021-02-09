@@ -29,7 +29,7 @@ export interface DrawTileOptions {
   done: DoneCallback;
 }
 
-// note: Tile is taken from leafets `InternalTiles` type and should not be modified.  - SFR 2021-01-19
+// note: Tile is taken from leaflets `InternalTiles` type and should not be modified.  - SFR 2021-01-19
 export type Tile = {
   active?: boolean;
   coords: Coords;

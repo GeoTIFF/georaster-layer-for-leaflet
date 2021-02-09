@@ -94,8 +94,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.chroma = chroma;
       this.scale = chroma.scale();
 
-      // @ts-ignore does not appear to be included in the L type
-      L.setOptions(this, options);
+      L.Util.setOptions(this, options);
 
       /*
           Caching the constant tile size, so we don't recalculate everytime we
@@ -233,7 +232,8 @@ const GeoRasterLayer = L.GridLayer.extend({
     const yMinOfTileInMapCRS = boundsOfTile.getSouth();
     const yMaxOfTileInMapCRS = boundsOfTile.getNorth();
 
-    let rasterPixelsAcross, rasterPixelsDown;
+    let rasterPixelsAcross = 0;
+    let rasterPixelsDown = 0;
     if (inSimpleCRS || this.projection === EPSG4326) {
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((xMaxOfTileInMapCRS - xMinOfTileInMapCRS) / pixelWidth);
@@ -272,7 +272,7 @@ const GeoRasterLayer = L.GridLayer.extend({
 
     // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
     setTimeout(async () => {
-      let tileRasters: Georaster[];
+      let tileRasters: number[][][] | null = null;
       if (!rasters) {
         tileRasters = await this.getRasters({
           tileNwPoint,

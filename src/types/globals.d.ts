@@ -1,1 +1,1 @@
-declare var proj4: any;
+declare const proj4: any;

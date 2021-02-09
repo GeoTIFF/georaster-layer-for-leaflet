@@ -1,15 +1,14 @@
 {
-    "presets": [
-      [
-        "@babel/preset-env",
-        {
-          "targets": {
-            "ie": 11
-          }
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "ie": 11
         }
-      ]
+      }
     ],
-    "plugins": [
-      "@babel/plugin-transform-template-literals"
-    ]
-  }
+    "@babel/preset-typescript"
+  ],
+  "plugins": ["@babel/plugin-transform-template-literals"]
+}
