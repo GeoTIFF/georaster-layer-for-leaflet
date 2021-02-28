@@ -73,7 +73,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         if (!options.keepBuffer) options.keepBuffer = 16;
       }
 
-      // todo: set defaults in descructured options - SFR 2021-01-20
+      // todo: destructor options then set default - SFR 2021-01-20
       if (!("debugLevel" in options)) options.debugLevel = 1;
       if (!options.keepBuffer) options.keepBuffer = 25;
       if (!options.resolution) options.resolution = Math.pow(2, 5);
@@ -82,12 +82,14 @@ const GeoRasterLayer = L.GridLayer.extend({
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log("georaster:", options);
 
-      //! note: Values is missing in type. What should it be? number[][][] - SFR 2021-01-20
       if (this.georasters.every((georaster: Georaster) => typeof georaster.values === "object")) {
-        this.rasters = this.georasters.reduce((result: number[], georaster: Georaster) => {
-          result = result.concat(georaster.values);
-          return result;
-        }, []);
+        console.log("%c GEORASTERS", "color: red", this.georasters);
+        this.rasters = this.georasters.map((georaster: Georaster) => georaster.values)[0];
+
+        // this.rasters = this.georasters.reduce((result: number[][], georaster: Georaster) => {
+        //   result = result.concat(georaster.values);
+        //   return result;
+        // }, []);
         if (this.debugLevel > 1) console.log("this.rasters:", this.rasters);
       }
 
@@ -295,7 +297,7 @@ const GeoRasterLayer = L.GridLayer.extend({
         if (lat > yMinOfLayer && lat < yMaxOfLayer) {
           const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
 
-          let yInRasterPixels: number | null;
+          let yInRasterPixels: number | null = null;
           if (inSimpleCRS || this.projection === EPSG4326) {
             yInRasterPixels = Math.floor((yMaxOfLayer - lat) / pixelHeight);
           } else {
@@ -306,7 +308,7 @@ const GeoRasterLayer = L.GridLayer.extend({
             const latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
             const { lng: xOfLayer } = map.unproject(latLngPoint, coords.z);
             if (xOfLayer > xMinOfLayer && xOfLayer < xMaxOfLayer) {
-              let xInRasterPixels: number;
+              let xInRasterPixels: number | null = null;
               if (inSimpleCRS || this.projection === EPSG4326) {
                 xInRasterPixels = Math.floor((xOfLayer - xMinOfLayer) / pixelWidth);
               } else if (this.getProjector()) {
@@ -326,7 +328,8 @@ const GeoRasterLayer = L.GridLayer.extend({
                 values = tileRasters.map(band => band[h][w]);
               } else if (rasters) {
                 // get value from array with data for entire raster
-                values = rasters.map(band => {
+                values = rasters.map((band: Georaster) => {
+                  // @ts-ignore it works but needs validation. Current error: Type 'null' cannot be used as an index type
                   return band[yInRasterPixels][xInRasterPixels];
                 });
               } else {
@@ -424,13 +427,14 @@ const GeoRasterLayer = L.GridLayer.extend({
     const width = Math.pow(2, z);
 
     // check one world to the left
-    const leftCoords = L.point(x - width, y);
+    const leftCoords = L.point(x - width, y) as Coords;
     leftCoords.z = z;
     if (layerBounds.overlaps(this._tileCoordsToBounds(leftCoords))) return true;
 
     // check one world to the right
-    const rightCoords = L.point(x + width, y);
+    const rightCoords = L.point(x + width, y) as Coords;
     rightCoords.z = z;
+
     if (layerBounds.overlaps(this._tileCoordsToBounds(rightCoords))) return true;
 
     return false;
@@ -477,6 +481,7 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {Object} [options] - Configuration options passed to the method
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
+  // @ts-ignore current error: An outer value of 'this' is shadowed by this container.
   updateColors(pixelValuesToColorFn: PixelValueToColorFn, { debugLevel = this.debugLevel } = {}) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
@@ -526,6 +531,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     return `EPSG:${projection}`;
   },
 
+  // @ts-ignore current error: An outer value of 'this' is shadowed by this container.
   initBounds: function (options = this.options) {
     if (!this._bounds) {
       const { debugLevel, height, width, projection, xmin, xmax, ymin, ymax } = this;
@@ -586,7 +592,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
   module.exports = GeoRasterLayer;
 }
 if (typeof window !== "undefined") {
-  window["GeoRasterLayer"] = GeoRasterLayer;
+  (window as any)["GeoRasterLayer"] = GeoRasterLayer;
 } else if (typeof self !== "undefined") {
-  self["GeoRasterLayer"] = GeoRasterLayer; // jshint ignore:line
+  (self as any)["GeoRasterLayer"] = GeoRasterLayer;
 }

@@ -9,14 +9,15 @@
   "scripts": {
     "clean": "rimraf dist",
     "build:babel": "babel src/georaster-layer-for-leaflet.ts -o dist/georaster-layer-for-leaflet.bundle.js",
-    "build:browserify": "npm run build:babel && browserify dist/georaster-layer-for-leaflet.bundle.js -o dist/georaster-layer-for-leaflet.browserify.min.js",
-    "build:types": "tsc --emitDeclarationOnly",
+    "build:main": "tsc",
     "build:webpack": "webpack --config=webpack.config.js",
-    "build": "npm run build:babel && npm run build:webpack && build:tsc",
+    "build": "npm run build:babel && npm run build:webpack && npm run build:main",
     "dev": "concurrently \"npm run serve\" ",
-    "format": "prettier --write georaster-layer-for-leaflet.js webpack.config.js",
-    "fix": "eslint georaster-layer-for-leaflet.js --fix",
-    "lint": "eslint georaster-layer-for-leaflet.js",
+    "format": "prettier --write ./src/georaster-layer-for-leaflet.ts webpack.config.js",
+    "check-types": "tsc",
+    "fix": "eslint ./src/georaster-layer-for-leaflet.ts --fix",
+    "lint": "eslint ./src/georaster-layer-for-leaflet.ts",
+    "validate": "npm run lint && npm run format && npm run check-types",
     "serve": "HOST=0.0.0.0 http-server --cors"
   },
   "repository": {
@@ -58,7 +59,6 @@
     "@typescript-eslint/eslint-plugin": "^4.11.1",
     "@typescript-eslint/parser": "^4.11.1",
     "babel-loader": "^8.1.0",
-    "browserify": "^14.5.0",
     "concurrently": "^5.3.0",
     "eslint": "^7.17.0",
     "eslint-config-prettier": "^7.1.0",
@@ -73,5 +73,8 @@
   "peerDependencies": {
     "georaster": "^1.1.0",
     "leaflet": "^1.7.1"
-  }
+  },
+  "files": [
+    "dist/**"
+  ]
 }

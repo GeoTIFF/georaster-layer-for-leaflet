@@ -39,16 +39,16 @@ export type Tile = {
   retain?: boolean;
 };
 
-type GeorasterSource = {
+export type GeorasterSource = {
   blockSize: number;
   // not sure how to type Map yet but thats easily solved once I know what the map is of. i.e number, string etc
-  blockRequests: Map;
-  blocks: Map;
+  blockRequests: Map<any, any>;
+  blocks: Map<any, any>;
   blockIdsAwaitingRequest: any | null;
   retrievalFunction: () => void;
 };
 
-type GetValuesOptions = {
+export type GetValuesOptions = {
   bottom?: number;
   height: number;
   left?: number;
@@ -57,7 +57,7 @@ type GetValuesOptions = {
   width: number;
 };
 
-type GeorasterValues = number[][][];
+export type GeorasterValues = number[][][];
 
 export type GeorasterKeys =
   | "height"
@@ -73,10 +73,10 @@ export type GeorasterKeys =
   | "ymin"
   | "ymax";
 
-interface Georaster {
+export interface Georaster {
   getValues: (options?: GetValuesOptions) => GeorasterValues;
   height: number;
-  noDataValue: null | undefined | number | NaN;
+  noDataValue: null | undefined | number | typeof NaN;
   numberOfRasters: number;
   // todo: Verify the type of palette - SFR 2021-01-25
   palette: string[];
@@ -99,7 +99,7 @@ interface Georaster {
   cache: boolean;
   firstIFDOffset: number;
   ghostValues: null;
-  ifdRequests: Promise[];
+  ifdRequests: Promise<any>[];
   littleEndian: boolean;
   source: GeorasterSource;
   _url: string;
