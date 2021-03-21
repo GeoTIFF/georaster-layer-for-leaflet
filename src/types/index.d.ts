@@ -1,15 +1,23 @@
 /* eslint-disable camelcase */
 import type { GridLayerOptions, Coords, DoneCallback } from "leaflet";
 
-export type PixelValueToColorFn = (values: number[]) => string;
+export type PixelValuesToColorFn = (values: number[]) => string;
 
-export interface GeorasterLayerOptions extends GridLayerOptions {
-  georasters: Georaster[];
-  georaster: Georaster;
+interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number;
-  debugLevel?: 0 | 1;
-  pixelValuesToColorFn?: PixelValueToColorFn;
+  debugLevel?: 0 | 1 | 2;
+  pixelValuesToColorFn?: PixelValuesToColorFn;
 }
+
+// Ensures at least one of the georaster[s] options is defined while being ok the other is not
+type GeoRasterLayerOptions_GeoRaster =
+  | {
+      georasters?: GeoRaster[];
+      georaster: GeoRaster;
+    }
+  | { georasters: GeoRaster[]; georaster?: GeoRaster };
+
+export type GeoRasterLayerOptions = GeoRasterLayerOptions_CommonOptions & GeoRasterLayerOptions_GeoRaster;
 
 export type GetRasterOptions = {
   tileNwPoint: any;
@@ -39,15 +47,6 @@ export type Tile = {
   retain?: boolean;
 };
 
-export type GeorasterSource = {
-  blockSize: number;
-  // not sure how to type Map yet but thats easily solved once I know what the map is of. i.e number, string etc
-  blockRequests: Map<any, any>;
-  blocks: Map<any, any>;
-  blockIdsAwaitingRequest: any | null;
-  retrievalFunction: () => void;
-};
-
 export type GetValuesOptions = {
   bottom?: number;
   height: number;
@@ -57,9 +56,9 @@ export type GetValuesOptions = {
   width: number;
 };
 
-export type GeorasterValues = number[][][];
+export type GeoRasterValues = number[][][];
 
-export type GeorasterKeys =
+export type GeoRasterKeys =
   | "height"
   | "width"
   | "noDataValue"
@@ -73,12 +72,11 @@ export type GeorasterKeys =
   | "ymin"
   | "ymax";
 
-export interface Georaster {
-  getValues: (options?: GetValuesOptions) => GeorasterValues;
+export interface GeoRaster {
+  getValues: (options?: GetValuesOptions) => GeoRasterValues;
   height: number;
   noDataValue: null | undefined | number | typeof NaN;
   numberOfRasters: number;
-  // todo: Verify the type of palette - SFR 2021-01-25
   palette: string[];
   pixelHeight: number;
   pixelWidth: number;
@@ -86,7 +84,7 @@ export interface Georaster {
   rasterType: "geotiff" | "object";
   sourceType: "url" | "Buffer" | undefined;
   toCanvas: (e: any) => HTMLCanvasElement;
-  values: GeorasterValues | undefined;
+  values: GeoRasterValues | undefined;
   width: number;
   xmax: number;
   xmin: number;
@@ -95,13 +93,11 @@ export interface Georaster {
   _blob_is_available: boolean;
   _data: string;
   _geotiff: Record<string, unknown> | undefined;
-  bigTiff: boolean;
   cache: boolean;
   firstIFDOffset: number;
   ghostValues: null;
   ifdRequests: Promise<any>[];
   littleEndian: boolean;
-  source: GeorasterSource;
   _url: string;
   _url_is_available: boolean;
   _web_worker_is_available: boolean;

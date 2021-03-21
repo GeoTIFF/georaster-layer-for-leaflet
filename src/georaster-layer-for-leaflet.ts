@@ -6,12 +6,12 @@ import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
 import type { Coords, DoneCallback, LatLngTuple } from "leaflet";
 import type {
-  GeorasterLayerOptions,
-  Georaster,
-  GeorasterKeys,
+  GeoRasterLayerOptions,
+  GeoRaster,
+  GeoRasterKeys,
   GetRasterOptions,
   DrawTileOptions,
-  PixelValueToColorFn,
+  PixelValuesToColorFn,
   Tile
 } from "./types";
 
@@ -22,7 +22,15 @@ const MAX_EASTING = 1000;
 const ORIGIN: LatLngTuple = [0, 0];
 
 const GeoRasterLayer = L.GridLayer.extend({
-  initialize: function (options: GeorasterLayerOptions) {
+  options: {
+    updateWhenIdle: true,
+    updateWhenZooming: false,
+    keepBuffer: 25,
+    resolution: 2 ** 5,
+    debugLevel: 0
+  },
+
+  initialize: function (options: GeoRasterLayerOptions) {
     try {
       if (options.georasters) {
         this.georasters = options.georasters;
@@ -32,6 +40,11 @@ const GeoRasterLayer = L.GridLayer.extend({
         throw new Error("You initialized a GeoRasterLayer without a georaster or georasters value.");
       }
 
+      if (this.sourceType === "url") {
+        options.updateWhenIdle = false;
+        options.updateWhenZooming = true;
+        options.keepBuffer = 16;
+      }
       /*
           Unpacking values for use later.
           We do this in order to increase speed.
@@ -67,29 +80,15 @@ const GeoRasterLayer = L.GridLayer.extend({
       // used later if simple projection
       this.ratio = this.height / this.width;
 
-      if (this.sourceType === "url") {
-        if (!options.updateWhenIdle) options.updateWhenIdle = false;
-        if (!options.updateWhenZooming) options.updateWhenZooming = true;
-        if (!options.keepBuffer) options.keepBuffer = 16;
-      }
-
-      // todo: destructor options then set default - SFR 2021-01-20
-      if (!("debugLevel" in options)) options.debugLevel = 1;
-      if (!options.keepBuffer) options.keepBuffer = 25;
-      if (!options.resolution) options.resolution = Math.pow(2, 5);
-      if (options.updateWhenZooming === undefined) options.updateWhenZooming = false;
-
       this.debugLevel = options.debugLevel;
       if (this.debugLevel >= 1) console.log("georaster:", options);
 
-      if (this.georasters.every((georaster: Georaster) => typeof georaster.values === "object")) {
-        console.log("%c GEORASTERS", "color: red", this.georasters);
-        this.rasters = this.georasters.map((georaster: Georaster) => georaster.values)[0];
-
-        // this.rasters = this.georasters.reduce((result: number[][], georaster: Georaster) => {
-        //   result = result.concat(georaster.values);
-        //   return result;
-        // }, []);
+      if (this.georasters.every((georaster: GeoRaster) => typeof georaster.values === "object")) {
+        this.rasters = this.georasters.reduce((result: number[][][], georaster: GeoRaster) => {
+          // @ts-ignore values check in `if` statement but compiler doesn't pick it up
+          result = result.concat(georaster.values);
+          return result;
+        }, []);
         if (this.debugLevel > 1) console.log("this.rasters:", this.rasters);
       }
 
@@ -145,8 +144,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       This function takes in coordinates in the rendered image tile and
       returns the y and x values in the original raster
     */
-    // todo:<ts-conversion> check this return statement is correct - SFR 2021-01-19
-    const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } | undefined => {
+    const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } | null => {
       const xCenterInMapPixels = tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
       const yCenterInMapPixels = tileNwPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
 
@@ -172,6 +170,8 @@ const GeoRasterLayer = L.GridLayer.extend({
           y: Math.floor((ymax - y) / this.pixelHeight),
           x: Math.floor((x - xmin) / this.pixelWidth)
         };
+      } else {
+        return null;
       }
     };
 
@@ -192,7 +192,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       console.error("getRasters failed because not all values are finite:", getValuesOptions);
     } else {
       // !note: The types need confirmation - SFR 2021-01-20
-      return Promise.all(this.georasters.map((georaster: Georaster) => georaster.getValues(getValuesOptions))).then(
+      return Promise.all(this.georasters.map((georaster: GeoRaster) => georaster.getValues(getValuesOptions))).then(
         valuesByGeoRaster =>
           valuesByGeoRaster.reduce((result: number[][][], values) => {
             result = result.concat(values as number[][]);
@@ -240,8 +240,7 @@ const GeoRasterLayer = L.GridLayer.extend({
       // width of the Leaflet tile in number of pixels from original raster
       rasterPixelsAcross = Math.ceil((xMaxOfTileInMapCRS - xMinOfTileInMapCRS) / pixelWidth);
       rasterPixelsDown = Math.ceil((yMaxOfTileInMapCRS - yMinOfTileInMapCRS) / pixelHeight);
-      // note: why do we check for getProjector() - SFR 2021-01-20
-    } else if (this.getProjector()) {
+    } else {
       const projector = this.getProjector();
       // convert extent of Leaflet tile to projection of the georaster
       const topLeft = projector.inverse({ x: xMinOfTileInMapCRS, y: yMaxOfTileInMapCRS });
@@ -328,7 +327,7 @@ const GeoRasterLayer = L.GridLayer.extend({
                 values = tileRasters.map(band => band[h][w]);
               } else if (rasters) {
                 // get value from array with data for entire raster
-                values = rasters.map((band: Georaster) => {
+                values = rasters.map((band: GeoRaster) => {
                   // @ts-ignore it works but needs validation. Current error: Type 'null' cannot be used as an index type
                   return band[yInRasterPixels][xInRasterPixels];
                 });
@@ -482,7 +481,7 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
   // @ts-ignore current error: An outer value of 'this' is shadowed by this container.
-  updateColors(pixelValuesToColorFn: PixelValueToColorFn, { debugLevel = this.debugLevel } = {}) {
+  updateColors(pixelValuesToColorFn: PixelValuesToColorFn, { debugLevel = this.debugLevel } = {}) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
@@ -583,7 +582,7 @@ const GeoRasterLayer = L.GridLayer.extend({
     }
   },
 
-  same(array: Georaster[], key: GeorasterKeys) {
+  same(array: GeoRaster[], key: GeoRasterKeys) {
     return new Set(array.map(item => item[key])).size === 1;
   }
 });

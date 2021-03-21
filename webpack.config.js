@@ -7,7 +7,7 @@ module.exports = {
   output: {
     filename: "georaster-layer-for-leaflet.min.js",
     path: path.resolve(__dirname, "dist"),
-    library: "libraryStarter",
+    library: "GeoRasterLayer",
     libraryTarget: "umd"
   },
   devtool: "source-map",
