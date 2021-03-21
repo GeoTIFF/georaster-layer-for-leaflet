@@ -18,10 +18,10 @@ You can directly edit the canvas that is being rendered by passing in a customDr
 Here's a rough example implementing drawing of wind direction arrows: https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/wind-direction-arrows.html and the [source code](https://github.com/GeoTIFF/georaster-layer-for-leaflet-example/blob/master/examples/wind-direction-arrows.html#L38) for it.
 
 ## Setting the Log Level
-You can turn off console logging by setting the debugLevel to 0.
+You can turn on extra console logging for debugging purposes by setting the debugLevel to 1 or greater.
 ```javascript
 new GeoRasterLayer({
   georaster,
-  debugLevel: 0
+  debugLevel: 1
 })
 ```
