@@ -296,18 +296,16 @@ const GeoRasterLayer = L.GridLayer.extend({
         if (lat > yMinOfLayer && lat < yMaxOfLayer) {
           const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
 
-          let yInRasterPixels: number | null = null;
+          let yInRasterPixels = 0;
           if (inSimpleCRS || this.projection === EPSG4326) {
             yInRasterPixels = Math.floor((yMaxOfLayer - lat) / pixelHeight);
-          } else {
-            yInRasterPixels = null;
           }
 
           for (let w = 0; w < numberOfSamplesAcross; w++) {
             const latLngPoint = L.point(tileNwPoint.x + (w + 0.5) * widthOfSampleInScreenPixels, yCenterInMapPixels);
             const { lng: xOfLayer } = map.unproject(latLngPoint, coords.z);
             if (xOfLayer > xMinOfLayer && xOfLayer < xMaxOfLayer) {
-              let xInRasterPixels: number | null = null;
+              let xInRasterPixels = 0;
               if (inSimpleCRS || this.projection === EPSG4326) {
                 xInRasterPixels = Math.floor((xOfLayer - xMinOfLayer) / pixelWidth);
               } else if (this.getProjector()) {
@@ -327,8 +325,7 @@ const GeoRasterLayer = L.GridLayer.extend({
                 values = tileRasters.map(band => band[h][w]);
               } else if (rasters) {
                 // get value from array with data for entire raster
-                values = rasters.map((band: GeoRaster) => {
-                  // @ts-ignore it works but needs validation. Current error: Type 'null' cannot be used as an index type
+                values = rasters.map((band: number[][]) => {
                   return band[yInRasterPixels][xInRasterPixels];
                 });
               } else {
