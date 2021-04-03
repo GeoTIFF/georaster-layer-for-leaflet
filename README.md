@@ -20,7 +20,7 @@ npm install georaster
 ## Load Package via Script Tag
 
 ```html
-<script src="https://unpkg.com/georaster-layer-for-leaflet/georaster-layer-for-leaflet.browserify.min.js"></script>
+<script src="https://unpkg.com/georaster-layer-for-leaflet/georaster-layer-for-leaflet.min.js>
 ```
 
 ## Usage
