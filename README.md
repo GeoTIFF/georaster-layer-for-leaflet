@@ -26,7 +26,7 @@ npm install georaster
 ## Usage
 
 ```javascript
-new GeoRasterLayer({georaster: georaster}).addTo(map);
+new GeoRasterLayer({ georaster }).addTo(map);
 ```
 
 ## Demos
