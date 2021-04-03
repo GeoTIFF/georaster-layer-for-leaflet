@@ -2,18 +2,23 @@
   "name": "georaster-layer-for-leaflet",
   "version": "0.7.1",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
-  "main": "georaster-layer-for-leaflet.bundle.js",
-  "unpkg": "./georaster-layer-for-leaflet.min.js",
+  "source": "src/georaster-layer-for-leaflet.ts",
+  "main": "dist/georaster-layer-for-leaflet.min.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "dist/georaster-layer-for-leaflet.min.js",
   "scripts": {
-    "babel": "babel georaster-layer-for-leaflet.js -o georaster-layer-for-leaflet.bundle.js",
-    "browserify": "npm run babel && browserify georaster-layer-for-leaflet.bundle.js -o georaster-layer-for-leaflet.browserify.min.js",
-    "build": "npm run babel && npm run browserify && npm run webpack",
-    "dev": "concurrently \"WEBPACK_WATCH=true npm run webpack\" \"npm run serve\"",
-    "format": "prettier --write georaster-layer-for-leaflet.js webpack.config.js",
-    "fix": "eslint georaster-layer-for-leaflet.js --fix",
-    "lint": "eslint georaster-layer-for-leaflet.js",
-    "serve": "HOST=0.0.0.0 http-server --cors",
-    "webpack": "webpack --config=webpack.config.js"
+    "clean": "rimraf dist",
+    "build:babel": "babel src/georaster-layer-for-leaflet.ts -o dist/georaster-layer-for-leaflet.bundle.js",
+    "build:main": "tsc",
+    "build:webpack": "webpack",
+    "build": "npm run build:babel && npm run build:webpack && npm run build:main",
+    "dev": "concurrently \"npm run serve\" \"webpack --watch\" ",
+    "format": "prettier --write ./src/georaster-layer-for-leaflet.ts webpack.config.js",
+    "check-types": "tsc",
+    "fix": "eslint ./src/georaster-layer-for-leaflet.ts --fix",
+    "lint": "eslint ./src/georaster-layer-for-leaflet.ts",
+    "validate": "npm run lint && npm run format && npm run check-types",
+    "serve": "HOST=0.0.0.0 http-server --cors"
   },
   "repository": {
     "type": "git",
@@ -47,16 +52,29 @@
     "@babel/core": "^7.10.5",
     "@babel/plugin-transform-template-literals": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
+    "@babel/preset-typescript": "^7.12.13",
+    "@types/chroma-js": "^2.1.3",
+    "@types/leaflet": "^1.5.21",
+    "@types/node": "^14.14.19",
+    "@typescript-eslint/eslint-plugin": "^4.11.1",
+    "@typescript-eslint/parser": "^4.11.1",
     "babel-loader": "^8.1.0",
-    "browserify": "^14.5.0",
     "concurrently": "^5.3.0",
-    "eslint": "^5.16.0",
+    "eslint": "^7.17.0",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-prettier": "^3.3.0",
     "http-server": "^0.12.3",
     "prettier": "^2.1.2",
-    "webpack": "^3.12.0",
-    "webpack-cli": "^3.3.12"
+    "rimraf": "^3.0.2",
+    "typescript": "^4.1.3",
+    "webpack": "^5.21.2",
+    "webpack-cli": "^4.5.0"
   },
   "peerDependencies": {
-    "georaster": "^1.1.0"
-  }
+    "georaster": "*",
+    "leaflet": "^1.7.1"
+  },
+  "files": [
+    "dist/**"
+  ]
 }
