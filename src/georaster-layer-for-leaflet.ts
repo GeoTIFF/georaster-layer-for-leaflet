@@ -588,14 +588,13 @@ const GeoRasterLayer = L.GridLayer.extend({
   }
 });
 
-if (typeof module === "object" && typeof module.exports === "object") {
-  module.exports = GeoRasterLayer;
-}
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 if (typeof window === "object") {
   (window as any)["GeoRasterLayer"] = GeoRasterLayer;
-} else if (typeof self !== "undefined") {
+}
+if (typeof self !== "undefined") {
   (self as any)["GeoRasterLayer"] = GeoRasterLayer;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+export default GeoRasterLayer;
