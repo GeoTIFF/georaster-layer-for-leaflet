@@ -71,3 +71,6 @@ tests/*.tif.1
 
 .vscode
 .DS_Store
+
+# old versions that are pulled down with prepare.sh
+georaster-layer-for-leaflet.*

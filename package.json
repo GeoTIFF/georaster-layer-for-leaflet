@@ -17,6 +17,7 @@
     "check-types": "tsc",
     "fix": "eslint ./src/georaster-layer-for-leaflet.ts --fix",
     "lint": "eslint ./src/georaster-layer-for-leaflet.ts",
+    "prep-legacy": "./prep-legacy.sh",
     "validate": "npm run lint && npm run format && npm run check-types",
     "serve": "HOST=0.0.0.0 http-server --cors"
   },
@@ -75,6 +76,7 @@
     "leaflet": "^1.7.1"
   },
   "files": [
-    "dist/**"
+    "dist/**",
+    "georaster-layer-for-leaflet*"
   ]
 }
