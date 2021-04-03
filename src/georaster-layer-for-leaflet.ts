@@ -479,7 +479,7 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {Object} [options] - Configuration options passed to the method
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  updateColors(pixelValuesToColorFn: PixelValuesToColorFn, { debugLevel=-1 } = { debugLevel: -1 }) {
+  updateColors(pixelValuesToColorFn: PixelValuesToColorFn, { debugLevel = -1 } = { debugLevel: -1 }) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
