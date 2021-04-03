@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { GridLayerOptions, Coords, DoneCallback } from "leaflet";
+import type { GridLayerOptions, Coords, DoneCallback, LatLngBounds } from "leaflet";
 
 export type PixelValuesToColorFn = (values: number[]) => string;
 
@@ -7,6 +7,7 @@ interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number;
   debugLevel?: 0 | 1 | 2;
   pixelValuesToColorFn?: PixelValuesToColorFn;
+  bounds?: LatLngBounds
 }
 
 // Ensures at least one of the georaster[s] options is defined while being ok the other is not

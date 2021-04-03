@@ -85,9 +85,11 @@ const GeoRasterLayer = L.GridLayer.extend({
 
       if (this.georasters.every((georaster: GeoRaster) => typeof georaster.values === "object")) {
         this.rasters = this.georasters.reduce((result: number[][][], georaster: GeoRaster) => {
-          // @ts-ignore values check in `if` statement but compiler doesn't pick it up
-          result = result.concat(georaster.values);
-          return result;
+          // added double-check of values to make typescript linter and compiler happy
+          if (georaster.values) {
+            result = result.concat(georaster.values);
+            return result;
+          }
         }, []);
         if (this.debugLevel > 1) console.log("this.rasters:", this.rasters);
       }
@@ -477,11 +479,13 @@ const GeoRasterLayer = L.GridLayer.extend({
    * @param {Object} [options] - Configuration options passed to the method
    * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  // @ts-ignore current error: An outer value of 'this' is shadowed by this container.
-  updateColors(pixelValuesToColorFn: PixelValuesToColorFn, { debugLevel = this.debugLevel } = {}) {
+  updateColors(pixelValuesToColorFn: PixelValuesToColorFn, { debugLevel=-1 } = { debugLevel: -1 }) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
+
+    // if debugLevel is -1, set it to the default for the class
+    if (debugLevel === -1) debugLevel = this.debugLevel;
 
     if (debugLevel >= 1) console.log("Start updating active tile pixel values");
 
@@ -527,8 +531,8 @@ const GeoRasterLayer = L.GridLayer.extend({
     return `EPSG:${projection}`;
   },
 
-  // @ts-ignore current error: An outer value of 'this' is shadowed by this container.
-  initBounds: function (options = this.options) {
+  initBounds: function (options: GeoRasterLayerOptions) {
+    if (!options) options = this.options;
     if (!this._bounds) {
       const { debugLevel, height, width, projection, xmin, xmax, ymin, ymax } = this;
       // check if map using Simple CRS
@@ -584,11 +588,14 @@ const GeoRasterLayer = L.GridLayer.extend({
   }
 });
 
-if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+if (typeof module === "object" && typeof module.exports === "object") {
   module.exports = GeoRasterLayer;
 }
-if (typeof window !== "undefined") {
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+if (typeof window === "object") {
   (window as any)["GeoRasterLayer"] = GeoRasterLayer;
 } else if (typeof self !== "undefined") {
   (self as any)["GeoRasterLayer"] = GeoRasterLayer;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
