@@ -4,7 +4,7 @@
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
   "source": "src/georaster-layer-for-leaflet.ts",
   "main": "dist/georaster-layer-for-leaflet.min.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/georaster-layer-for-leaflet.d.ts",
   "unpkg": "dist/georaster-layer-for-leaflet.min.js",
   "scripts": {
     "clean": "rimraf dist",
