@@ -21,7 +21,7 @@ const MAX_NORTHING = 1000;
 const MAX_EASTING = 1000;
 const ORIGIN: LatLngTuple = [0, 0];
 
-const GeoRasterLayer = L.GridLayer.extend({
+const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.Class = L.GridLayer.extend({
   options: {
     updateWhenIdle: true,
     updateWhenZooming: false,
@@ -466,20 +466,12 @@ const GeoRasterLayer = L.GridLayer.extend({
   },
 
   /**
-   * The callback used to determine the colour based on the values of each pixel
-   *
-   * @callback pixelValuesToColorFn
-   * @param {array | number} values - The pixel value depends on the image being rendered. Multiband images will be a tuple of one value per band. Single band images will be a single number
-   * @returns {string} - Any valid CSS color string
-   */
-
-  /**
    * Redraws the active map tiles updating the pixel values using the supplie callback
-   * @param {pixelValuesToColorFn} pixelValuesToColorFn - Callback that handles getting the pixel color
-   * @param {Object} [options] - Configuration options passed to the method
-   * @param {boolean} [options.debugLevel=0] - Overrides the global `debugLevel`. Set it to >=1 to allow output here when the global `debugLevel` = 0
    */
-  updateColors(pixelValuesToColorFn: PixelValuesToColorFn, { debugLevel = -1 } = { debugLevel: -1 }) {
+  updateColors(
+    pixelValuesToColorFn: /**The callback used to determine the colour based on the values of each pixel */ PixelValuesToColorFn,
+    { debugLevel = -1 } = { debugLevel: -1 }
+  ) {
     if (!pixelValuesToColorFn) {
       throw new Error("Missing pixelValuesToColorFn function");
     }
@@ -598,3 +590,6 @@ if (typeof self !== "undefined") {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export default GeoRasterLayer;
+
+// Explicitly exports public types
+export type { GeoRaster, GeoRasterLayerOptions, PixelValuesToColorFn } from "./types";
