@@ -19,6 +19,7 @@
     "fix": "eslint ./src/georaster-layer-for-leaflet.ts --fix",
     "lint": "eslint ./src/georaster-layer-for-leaflet.ts",
     "prep-legacy": "./prep-legacy.sh",
+    "test": "echo 'to set library, run dev and serve and open the html files in test folder on localhost'",
     "validate": "npm run lint && npm run format && npm run check-types",
     "serve": "HOST=0.0.0.0 http-server --cors"
   },
