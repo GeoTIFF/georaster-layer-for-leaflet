@@ -5,6 +5,7 @@ import chroma from "chroma-js";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
 import type { Coords, DoneCallback, LatLngTuple } from "leaflet";
+import proj4FullyLoaded from "proj4-fully-loaded";
 import type {
   GeoRasterLayerOptions,
   GeoRaster,
@@ -16,7 +17,7 @@ import type {
 } from "./types";
 
 const EPSG4326 = 4326;
-const PROJ4_SUPPORTED_PROJECTIONS = new Set([3857, 4269]);
+const PROJ4_SUPPORTED_PROJECTIONS = new Set([3785, 3857, 4269, 4326, 900913, 102113]);
 const MAX_NORTHING = 1000;
 const MAX_EASTING = 1000;
 const ORIGIN: LatLngTuple = [0, 0];
@@ -511,9 +512,26 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     return tiles.filter(tile => this._isValidTile(tile.coords));
   },
 
-  isSupportedProjection: function (projection: number) {
-    if (!projection) projection = this.projection;
-    return isUTM(projection) || PROJ4_SUPPORTED_PROJECTIONS.has(projection);
+  isSupportedProjection: function () {
+    if (this._isSupportedProjection === undefined) {
+      const projection = this.projection;
+      if (isUTM(projection)) {
+        this._isSupportedProjection = true;
+      } else if (PROJ4_SUPPORTED_PROJECTIONS.has(projection)) {
+        this._isSupportedProjection = true;
+      } else if (typeof proj4FullyLoaded === "function" && `EPSG:${projection}` in proj4FullyLoaded.defs) {
+        this._isSupportedProjection = true;
+      } else if (
+        typeof proj4 === "function" &&
+        typeof proj4.defs !== "undefined" &&
+        `EPSG:${projection}` in proj4.defs
+      ) {
+        this._isSupportedProjection = true;
+      } else {
+        this._isSupportedProjection = false;
+      }
+    }
+    return this._isSupportedProjection;
   },
 
   getProjectionString: function (projection: number) {
@@ -549,7 +567,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         const maxLatEast = L.latLng(topRight.y, topRight.x);
         this._bounds = L.latLngBounds(minLatWest, maxLatEast);
       } else {
-        throw `georaster-layer-for-leaflet does not support rasters with the projection ${projection}`;
+        if (typeof proj4FullyLoaded !== "function") {
+          throw `You are using the lite version of georaster-layer-for-leaflet, which does not support rasters with the projection ${projection}.  Please try using the default build or add the projection definition to your global proj4.`;
+        } else {
+          throw `GeoRasterLayer does not provide built-in support for rasters with the projection ${projection}.  Add the projection definition to your global proj4.`;
+        }
       }
 
       // these values are used so we don't try to sample outside of the raster
@@ -563,12 +585,38 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
   },
 
   getProjector: function () {
-    if (this.isSupportedProjection(this.projection)) {
-      if (!proj4) {
-        throw "proj4 must be found in the global scope in order to load a raster that uses a UTM projection";
+    if (this.isSupportedProjection()) {
+      if (!proj4FullyLoaded && !proj4) {
+        throw "proj4 must be found in the global scope in order to load a raster that uses this projection";
       }
       if (!this._projector) {
-        this._projector = proj4(this.getProjectionString(this.projection), `EPSG:${EPSG4326}`);
+        const projString = this.getProjectionString(this.projection);
+        if (this.debugLevel >= 1) console.log("projString:", projString);
+        let proj4Lib;
+        if (projString.startsWith("EPSG")) {
+          if (typeof proj4 === "function" && typeof proj4.defs === "function" && projString in proj4.defs) {
+            proj4Lib = proj4;
+          } else if (
+            typeof proj4FullyLoaded === "function" &&
+            typeof proj4FullyLoaded.defs === "function" &&
+            projString in proj4FullyLoaded.defs
+          ) {
+            debugger;
+            proj4Lib = proj4FullyLoaded;
+          } else {
+            throw "[georaster-layer-for-leaflet] projection not found in proj4 instance";
+          }
+        } else {
+          if (typeof proj4 === "function") {
+            proj4Lib = proj4;
+          } else if (typeof proj4FullyLoaded === "function") {
+            proj4Lib = proj4FullyLoaded;
+          } else {
+            throw "[georaster-layer-for-leaflet] projection not found in proj4 instance";
+          }
+        }
+        this._projector = proj4Lib(projString, `EPSG:${EPSG4326}`);
+
         if (this.debugLevel >= 1) console.log("projector set");
       }
       return this._projector;

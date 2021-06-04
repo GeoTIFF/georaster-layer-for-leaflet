@@ -37,10 +37,11 @@ new GeoRasterLayer({ georaster }).addTo(map);
 
 ## Why
 
+- Support for nearly all projections, thanks to [proj4-fully-loaded](https://github.com/danieljdufour/proj4-fully-loaded) and [epsg.io](https://epsg.io/)
 - Super faster rendering thanks to a simple nearest neighbor interpolation
 - Use of web workers means seamless integration that doesn't block main thread
 - Loads large geotiffs greater than a hundred megabytes
-- Supports custom rendering including custom colors and context drawing
+- Supports custom rendering including custom colors, directional arrows, and context drawing
 - Doesn't depend on WebGL
 
 ## The GeoRasterLayer Class
