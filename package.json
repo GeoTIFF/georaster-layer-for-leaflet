@@ -11,8 +11,9 @@
     "build:babel": "babel src/georaster-layer-for-leaflet.ts -o dist/georaster-layer-for-leaflet.bundle.js",
     "build:main": "tsc",
     "build:types": "tsc --emitDeclarationOnly",
+    "build:webpack:lite": "LITE=true webpack",
     "build:webpack": "webpack",
-    "build": "npm run clean && npm run build:babel && npm run build:webpack && npm run build:main",
+    "build": "npm run clean && npm run build:babel && npm run build:webpack && npm run build:webpack:lite && npm run build:main",
     "dev": "concurrently \"npm run serve\" \"webpack --watch\" ",
     "format": "prettier --write ./src/georaster-layer-for-leaflet.ts webpack.config.js",
     "check-types": "tsc",
@@ -47,6 +48,7 @@
   "homepage": "https://github.com/GeoTIFF/georaster-layer-for-leaflet#readme",
   "dependencies": {
     "chroma-js": "^1.4.0",
+    "proj4-fully-loaded": "^0.0.3",
     "regenerator-runtime": "^0.13.5",
     "utm-utils": "^0.1.0"
   },
@@ -67,6 +69,7 @@
     "eslint-config-prettier": "^7.1.0",
     "eslint-plugin-prettier": "^3.3.0",
     "http-server": "^0.12.3",
+    "null-loader": "^4.0.1",
     "prettier": "^2.1.2",
     "rimraf": "^3.0.2",
     "typescript": "^4.1.3",
