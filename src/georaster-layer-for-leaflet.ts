@@ -4,7 +4,7 @@ import * as L from "leaflet";
 import chroma from "chroma-js";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
-import type { Coords, DoneCallback, LatLngTuple } from "leaflet";
+import type { Coords, DoneCallback, LatLngBounds, LatLngTuple } from "leaflet";
 import proj4FullyLoaded from "proj4-fully-loaded";
 import type {
   GeoRasterLayerOptions,
@@ -21,6 +21,18 @@ const PROJ4_SUPPORTED_PROJECTIONS = new Set([3785, 3857, 4269, 4326, 900913, 102
 const MAX_NORTHING = 1000;
 const MAX_EASTING = 1000;
 const ORIGIN: LatLngTuple = [0, 0];
+
+const overlaps = (a: LatLngBounds, b: LatLngBounds) => {
+  const sw1 = a.getSouthWest();
+  const ne1 = a.getNorthEast();
+  const sw2 = b.getSouthWest();
+  const ne2 = b.getNorthEast();
+
+  const latOverlaps = ne2.lat > sw1.lat && sw2.lat < ne1.lat;
+  const lngOverlaps = ne2.lng > sw1.lng && sw2.lng < ne1.lng;
+
+  return latOverlaps && lngOverlaps;
+};
 
 const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.Class = L.GridLayer.extend({
   options: {
@@ -389,6 +401,28 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     return this._map || this._mapToAdd;
   },
 
+  // add in to ensure backwards compatability with Leaflet 1.0.3
+  _tileCoordsToNwSe: function (coords: Coords) {
+    const map = this.getMap();
+    const tileSize = this.getTileSize();
+    const nwPoint = coords.scaleBy(tileSize);
+    const sePoint = nwPoint.add(tileSize);
+    const nw = map.unproject(nwPoint, coords.z);
+    const se = map.unproject(sePoint, coords.z);
+    return [nw, se];
+  },
+
+  _tileCoordsToBounds: function (coords: Coords) {
+    const [nw, se] = this._tileCoordsToNwSe(coords);
+    let bounds = new L.LatLngBounds(nw, se);
+
+    if (!this.options.noWrap) {
+      const { crs } = this.getMap().options;
+      bounds = crs.wrapLatLngBounds(bounds);
+    }
+    return bounds;
+  },
+
   _isValidTile: function (coords: Coords) {
     const crs = this.getMap().options.crs;
 
@@ -416,7 +450,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     const boundsOfTile = this._tileCoordsToBounds(coords);
 
     // check given tile coordinates
-    if (layerBounds.overlaps(boundsOfTile)) return true;
+    if (overlaps(layerBounds, boundsOfTile)) return true;
 
     // if not within the original confines of the earth return false
     // we don't want wrapping if using Simple CRS
@@ -428,13 +462,14 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     // check one world to the left
     const leftCoords = L.point(x - width, y) as Coords;
     leftCoords.z = z;
-    if (layerBounds.overlaps(this._tileCoordsToBounds(leftCoords))) return true;
+    const leftBounds = this._tileCoordsToBounds(leftCoords);
+    if (overlaps(layerBounds, leftBounds)) return true;
 
     // check one world to the right
     const rightCoords = L.point(x + width, y) as Coords;
     rightCoords.z = z;
-
-    if (layerBounds.overlaps(this._tileCoordsToBounds(rightCoords))) return true;
+    const rightBounds = this._tileCoordsToBounds(rightCoords);
+    if (overlaps(layerBounds, rightBounds)) return true;
 
     return false;
   },
