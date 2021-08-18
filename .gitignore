@@ -74,3 +74,6 @@ tests/*.tif.1
 
 # old versions that are pulled down with prepare.sh
 georaster-layer-for-leaflet.*
+
+# backup files
+*bak*
