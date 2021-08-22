@@ -22,10 +22,10 @@ type GeoRasterLayerOptions_GeoRaster =
 export type GeoRasterLayerOptions = GeoRasterLayerOptions_CommonOptions & GeoRasterLayerOptions_GeoRaster;
 
 export type GetRasterOptions = {
-  tileNwPoint: any;
+  innerTileTopLeftPoint: any;
   heightOfSampleInScreenPixels: any;
   widthOfSampleInScreenPixels: any;
-  coords: any;
+  zoom: number;
   numberOfSamplesAcross: any;
   numberOfSamplesDown: any;
   ymax: any;
@@ -103,4 +103,8 @@ export interface GeoRaster {
   _url: string;
   _url_is_available: boolean;
   _web_worker_is_available: boolean;
+}
+
+export interface CustomCSSStyleDeclaration extends CSSStyleDeclaration {
+  WebkitBackfaceVisibility?: string
 }
