@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { GridLayerOptions, Coords, DoneCallback, LatLngBounds } from "leaflet";
+import type { GridLayerOptions, Coords, CRS, DoneCallback, LatLngBounds, Transformation } from "leaflet";
 
 export type PixelValuesToColorFn = (values: number[]) => string;
 
@@ -107,4 +107,15 @@ export interface GeoRaster {
 
 export interface CustomCSSStyleDeclaration extends CSSStyleDeclaration {
   WebkitBackfaceVisibility?: string
+}
+
+export interface CustomTransformation extends Transformation {
+  _a?: Number,
+  _b?: Number,
+  _c?: Number,
+  _d?: Number
+}
+
+export interface CustomCRS extends CRS {
+  transformation?: CustomTransformation
 }
