@@ -21,7 +21,7 @@
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
-      var map = L.map("map").setView([0, 0], 5);
+      var map = L.map("map").setView([0, 0], 0);
 
       // add OpenStreetMap basemap
       L.tileLayer("http://{s}.tile.osm.org/{z}/{x}/{y}.png", {
@@ -38,6 +38,7 @@
           parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
+              debugLevel: 10,
               georaster: georaster,
               resolution: 512,
               pixelValuesToColorFn: function (values) {

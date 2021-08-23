@@ -38,11 +38,12 @@
           parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
+              debugLevel: 4,
               georaster: georaster,
               resolution: 512
             });
-            layer.addTo(map);
             map.fitBounds(layer.getBounds());
+            layer.addTo(map);
           });
         });
     </script>
