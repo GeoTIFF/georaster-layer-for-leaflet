@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"/>
+    <style>
+      #map {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/chroma-js"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet@2"></script>
+
+    <script>
+      // initalize leaflet map
+      var map = L.map('map').setView([0, 0], 5);
+
+      // add OpenStreetMap basemap
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // originally from https://globalwindatlas.info/downloads/gis-files
+      var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/wind_speed_usa.tif";
+
+      fetch(url_to_geotiff_file)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+          parseGeoraster(arrayBuffer).then(georaster => {
+            const min = georaster.mins[0];
+            const max = georaster.maxs[0];
+            const range = georaster.ranges[0];
+
+            // available color scales can be found by running console.log(chroma.brewer);
+            console.log(chroma.brewer);
+            var scale = chroma.scale("Viridis");
+
+            var layer = new GeoRasterLayer({
+                debugLevel: 4,
+                georaster: georaster,
+                opacity: 0.7,
+                pixelValuesToColorFn: function(pixelValues) {
+                  var pixelValue = pixelValues[0]; // there's just one band in this raster
+
+                  // if there's zero wind, don't return a color
+                  if (pixelValue === 0) return null;
+
+                  // scale to 0 - 1 used by chroma
+                  var scaledPixelValue = (pixelValue - min) / range;
+
+                  var color = scale(scaledPixelValue).hex();
+
+                  return color;
+                },
+                resolution: 256
+            });
+            console.log("layer:", layer);
+            layer.addTo(map);
+
+            map.fitBounds(layer.getBounds());
+          });
+        });
+    </script>
+  </body>
+</html>
