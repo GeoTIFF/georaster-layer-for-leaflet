@@ -463,23 +463,23 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         });
         if (tileRasters && this.calcStats) {
           const { noDataValue } = this;
-          for (let band_index = 0; band_index < tileRasters.length; band_index++) {
-            let min = this.currentStats.mins[band_index];
-            let max = this.currentStats.maxs[band_index];
-            const band = tileRasters[band_index];
-            for (let row_index = 0; row_index < band.length; row_index++) {
-              const row = band[row_index];
-              for (let column_index = 0; column_index < row.length; column_index++) {
-                const value = row[column_index];
+          for (let bandIndex = 0; bandIndex < tileRasters.length; bandIndex++) {
+            let min = this.currentStats.mins[bandIndex];
+            let max = this.currentStats.maxs[bandIndex];
+            const band = tileRasters[bandIndex];
+            for (let rowIndex = 0; rowIndex < band.length; rowIndex++) {
+              const row = band[rowIndex];
+              for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+                const value = row[columnIndex];
                 if (value !== noDataValue) {
                   if (min === undefined || value < min) min = value;
                   if (max === undefined || value > max) max = value;
                 }
               }
             }
-            this.currentStats.mins[band_index] = min;
-            this.currentStats.maxs[band_index] = max;
-            this.currentStats.ranges[band_index] = max - min;
+            this.currentStats.mins[bandIndex] = min;
+            this.currentStats.maxs[bandIndex] = max;
+            this.currentStats.ranges[bandIndex] = max - min;
           }
         }
       }
