@@ -141,15 +141,24 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         throw "you must pass in a pixelValuesToColorFn if you are combining rasters";
       }
 
+      // total number of bands across all georasters
+      this.numBands = this.georasters.reduce((total: number, g: GeoRaster) => total + g.numberOfRasters, 0);
+      if (this.debugLevel > 1) console.log("this.numBands:", this.numBands);
+
+      // in-case we want to track dynamic/running stats of all pixels fetched
+      this.currentStats = {
+        mins: new Array(this.numBands),
+        maxs: new Array(this.numBands),
+        ranges: new Array(this.numBands)
+      };
+
       if (
         this.georasters.length === 1 &&
         this.georasters[0].sourceType === "url" &&
         this.georasters[0].numberOfRasters === 1 &&
         !options.pixelValuesToColorFn
       ) {
-        // For COG, we can't determine a data min max for color scaling,
-        // so pixelValuesToColorFn is required.
-        throw "pixelValuesToColorFn is a required option for single-band rasters initialized via URL";
+        this.calcStats = true;
       }
     } catch (error) {
       console.error("ERROR initializing GeoTIFFLayer", error);
@@ -299,7 +308,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     if (debugLevel >= 2) log({ extentOfTileInMapCRS });
 
     let extentOfInnerTileInMapCRS = extentOfTileInMapCRS.crop(inSimpleCRS ? extentOfLayer : this.extent);
+    if (debugLevel >= 2)
+      console.log(
+        "[georaster-layer-for-leaflet] extentOfInnerTileInMapCRS",
+        extentOfInnerTileInMapCRS.reproj(inSimpleCRS ? "simple" : 4326)
+      );
     if (debugLevel >= 2) log({ coords, extentOfInnerTileInMapCRS, extent: this.extent });
+
     // create blue outline around tiles
     if (debugLevel >= 4) {
       if (!this._cache.innerTile[cacheKey]) {
@@ -332,17 +347,21 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       padding: [1, 1], // add extra padding to cautiously handle floating point arithmetic
       scale: [xScaleOfScreenPixelInMapCRS, yScaleOfScreenPixelInMapCRS]
     });
+
     if (debugLevel >= 3)
       console.log(
         "[georaster-layer-for-leaflet] extent of inner tile before snapping " +
-          extentOfInnerTileInMapCRS.bbox.toString()
+          extentOfInnerTileInMapCRS.reproj(inSimpleCRS ? "simple" : 4326).bbox.toString()
       );
 
     // reset inner tile to the snapped version
-    extentOfInnerTileInMapCRS = new GeoExtent(snapped.bbox_in_coordinate_system, { srs: code });
+    extentOfInnerTileInMapCRS = new GeoExtent(snapped.bbox_in_coordinate_system, {
+      srs: inSimpleCRS ? "simple" : code
+    });
     if (debugLevel >= 3)
       console.log(
-        "[georaster-layer-for-leaflet] extent of inner tile after snapping " + extentOfInnerTileInMapCRS.bbox.toString()
+        "[georaster-layer-for-leaflet] extent of inner tile after snapping " +
+          extentOfInnerTileInMapCRS.reproj(inSimpleCRS ? "simple" : 4326).bbox.toString()
       );
 
     // we round here because sometimes there will be slight floating arithmetic issues
@@ -442,6 +461,27 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           ymax,
           xmin
         });
+        if (tileRasters && this.calcStats) {
+          const { noDataValue } = this;
+          for (let band_index = 0; band_index < tileRasters.length; band_index++) {
+            let min = this.currentStats.mins[band_index];
+            let max = this.currentStats.maxs[band_index];
+            const band = tileRasters[band_index];
+            for (let row_index = 0; row_index < band.length; row_index++) {
+              const row = band[row_index];
+              for (let column_index = 0; column_index < row.length; column_index++) {
+                const value = row[column_index];
+                if (value !== noDataValue) {
+                  if (min === undefined || value < min) min = value;
+                  if (max === undefined || value > max) max = value;
+                }
+              }
+            }
+            this.currentStats.mins[band_index] = min;
+            this.currentStats.maxs[band_index] = max;
+            this.currentStats.ranges[band_index] = max - min;
+          }
+        }
       }
 
       for (let h = 0; h < numberOfSamplesDown; h++) {
@@ -647,13 +687,17 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const haveDataForAllBands = values.every(value => value !== undefined && value !== this.noDataValue);
       if (haveDataForAllBands) {
         if (numberOfValues == 1) {
-          const { mins, ranges } = this.georasters[0];
           const value = values[0];
           if (this.palette) {
             const [r, g, b, a] = this.palette[value];
             return `rgba(${r},${g},${b},${a / 255})`;
-          } else {
+          } else if (this.georasters[0].mins) {
+            const { mins, ranges } = this.georasters[0];
             return this.scale((values[0] - mins[0]) / ranges[0]).hex();
+          } else if (this.currentStats.mins) {
+            const min = this.currentStats.mins[0];
+            const range = this.currentStats.ranges[0];
+            return this.scale((values[0] - min) / range).hex();
           }
         } else if (numberOfValues === 2) {
           return `rgb(${values[0]},${values[1]},0)`;

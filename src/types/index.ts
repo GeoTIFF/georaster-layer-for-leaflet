@@ -5,7 +5,7 @@ export type PixelValuesToColorFn = (values: number[]) => string;
 
 interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number;
-  debugLevel?: 0 | 1 | 2;
+  debugLevel?: 0 | 1 | 2 | 3 | 4;
   pixelValuesToColorFn?: PixelValuesToColorFn;
   bounds?: LatLngBounds;
   proj4?: Function;

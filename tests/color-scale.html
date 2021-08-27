@@ -22,7 +22,7 @@
 
     <script>
       // initalize leaflet map
-      var map = L.map('map').setView([0, 0], 5);
+      var map = L.map('map').setView([0, 0], 0);
 
       // add OpenStreetMap basemap
       L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
@@ -46,7 +46,7 @@
 
             var layer = new GeoRasterLayer({
                 debugLevel: 4,
-                georaster: georaster,
+                georaster,
                 opacity: 0.7,
                 pixelValuesToColorFn: function(pixelValues) {
                   var pixelValue = pixelValues[0]; // there's just one band in this raster
@@ -66,7 +66,7 @@
             console.log("layer:", layer);
             layer.addTo(map);
 
-            map.fitBounds(layer.getBounds());
+            // map.fitBounds(layer.getBounds());
           });
         });
     </script>
