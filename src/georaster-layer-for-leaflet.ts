@@ -464,12 +464,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
               xmin
             });
             if (tileRasters && this.calcStats) {
-              console.log(
-                "[georaster-layer-for-leaflet] tileRasters.constructor.name:",
-                tileRasters[0].constructor.name
-              );
-              //
-
               const { noDataValue } = this;
               for (let bandIndex = 0; bandIndex < tileRasters.length; bandIndex++) {
                 let min = this.currentStats.mins[bandIndex];
@@ -488,7 +482,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                 this.currentStats.mins[bandIndex] = min;
                 this.currentStats.maxs[bandIndex] = max;
                 this.currentStats.ranges[bandIndex] = max - min;
-                console.log("from", min, "to", max);
               }
             }
           }
