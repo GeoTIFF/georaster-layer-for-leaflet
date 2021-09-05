@@ -247,6 +247,10 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
   createTile: function (coords: Coords, done: DoneCallback) {
     /* This tile is the square piece of the Leaflet map that we draw on */
     const tile = L.DomUtil.create("canvas", "leaflet-tile") as HTMLCanvasElement;
+
+    // we do this because sometimes css normalizers will set * to box-sizing: border-box
+    tile.style.boxSizing = "content-box";
+
     const context = tile.getContext("2d");
     // note that we aren't setting the tile height or width here
     // drawTile dynamically sets the width and padding based on
