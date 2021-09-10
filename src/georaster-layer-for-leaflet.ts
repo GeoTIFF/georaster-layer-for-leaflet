@@ -427,10 +427,10 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const maxNumberOfSamplesDown = Math.ceil(percentHeight * resolution);
       if (debugLevel >= 4) console.log({ maxNumberOfSamplesAcross, maxNumberOfSamplesDown });
 
-      // prevent sampling more times than number of pixels to display
-      const numberOfSamplesAcross = Math.min(maxNumberOfSamplesAcross, rasterPixelsAcross);
+      // limit repeat sampling of the same pixel but also reducing aliasing at high zoom
+      const numberOfSamplesAcross = Math.min(maxNumberOfSamplesAcross, 3 * rasterPixelsAcross);
       if (debugLevel >= 4) console.log({ resolution, rasterPixelsAcross, numberOfSamplesAcross });
-      const numberOfSamplesDown = Math.min(maxNumberOfSamplesDown, rasterPixelsDown);
+      const numberOfSamplesDown = Math.min(maxNumberOfSamplesDown, 3 * rasterPixelsDown);
 
       // set how large to display each sample in screen pixels
       const heightOfSampleInScreenPixels = innerTileHeight / numberOfSamplesDown;
