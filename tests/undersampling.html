@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+      #map {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script>
+      const url_to_geotiff_file = "./check.tif";
+
+      fetch(url_to_geotiff_file)
+        .then(res => res.arrayBuffer())
+        .then(ab => parseGeoraster(ab))
+        .then(georaster => {
+          console.log("georaster:", georaster);
+          // initalize leaflet map
+          const map = L.map("map");
+          const lyr = new GeoRasterLayer({
+            debugLevel: 0,
+            georaster,
+            resolution: 512
+          });
+          console.log({ lyr });
+          lyr.addTo(map);
+          map.fitBounds(lyr.getBounds());
+        });
+    </script>
+  </body>
+</html>
