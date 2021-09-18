@@ -187,18 +187,18 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       returns the y and x values in the original raster
     */
     const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } | null => {
-      const xCenterInMapPixels = innerTileTopLeftPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
-      const yCenterInMapPixels = innerTileTopLeftPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
+      const xInMapPixels = innerTileTopLeftPoint.x + w * widthOfSampleInScreenPixels;
+      const yInMapPixels = innerTileTopLeftPoint.y + h * heightOfSampleInScreenPixels;
 
-      const mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
+      const mapPoint = L.point(xInMapPixels, yInMapPixels);
       if (this.debugLevel >= 1) log({ mapPoint });
 
       const { lat, lng } = this.getMap().unproject(mapPoint, zoom);
 
       if (this.projection === EPSG4326) {
         return {
-          y: Math.floor((ymax - lat) / this.pixelHeight),
-          x: Math.floor((lng - xmin) / this.pixelWidth)
+          y: Math.round((ymax - lat) / this.pixelHeight),
+          x: Math.round((lng - xmin) / this.pixelWidth)
         };
       } else if (this.getProjector()) {
         /* source raster doesn't use latitude and longitude,
@@ -209,8 +209,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           if (this.debugLevel >= 1) console.error("projector converted", [lng, lat], "to", [x, y]);
         }
         return {
-          y: Math.floor((ymax - y) / this.pixelHeight),
-          x: Math.floor((x - xmin) / this.pixelWidth)
+          y: Math.round((ymax - y) / this.pixelHeight),
+          x: Math.round((x - xmin) / this.pixelWidth)
         };
       } else {
         return null;
@@ -219,7 +219,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
     // careful not to flip min_y/max_y here
     const topLeft = rasterCoordsForTileCoords(0, 0);
-    const bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
+    const bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown, numberOfSamplesAcross);
 
     const getValuesOptions = {
       bottom: bottomRight?.y,
