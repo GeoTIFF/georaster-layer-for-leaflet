@@ -337,17 +337,22 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       if (debugLevel >= 3) log({ heightOfScreenPixelInMapCRS, widthOfScreenPixelInMapCRS });
 
       // expand tile sampling area to align with raster pixels
-      const oldExtentOfInnerTileInRasterCRS = extentOfInnerTileInMapCRS.reproj(this.projection);
+      const oldExtentOfInnerTileInRasterCRS = inSimpleCRS ? extentOfInnerTileInMapCRS :
+              extentOfInnerTileInMapCRS.reproj(this.projection);
       const snapped = snap({
         bbox: oldExtentOfInnerTileInRasterCRS.bbox,
         // pad xmax and ymin of container to tolerate ceil() and floor() in snap()
-        container: [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
+        container: inSimpleCRS ?
+            [extentOfLayer.xmin, extentOfLayer.ymin - 0.25 * pixelHeight,
+             extentOfLayer.xmax + 0.25 * pixelWidth, extentOfLayer.ymax] :
+            [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
         debug: debugLevel >= 2,
-        origin: [xmin, ymax],
+        origin: inSimpleCRS ? [extentOfLayer.xmin, extentOfLayer.ymax] : [xmin, ymax],
         scale: [pixelWidth, -pixelHeight]  // negative because origin is at ymax
       });
       const extentOfInnerTileInRasterCRS =
-        new GeoExtent(snapped.bbox_in_coordinate_system, { srs: this.projection });
+        new GeoExtent(snapped.bbox_in_coordinate_system,
+          { srs: inSimpleCRS ? "simple" : this.projection });
 
       const gridbox = snapped.bbox_in_grid_cells;
       const snappedSamplesAcross = Math.abs(gridbox[2] - gridbox[0]);
@@ -355,12 +360,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const rasterPixelsAcross = Math.ceil(oldExtentOfInnerTileInRasterCRS.width / pixelWidth);
       const rasterPixelsDown = Math.ceil(oldExtentOfInnerTileInRasterCRS.height / pixelHeight);
       const { resolution } = this.options;
-      const layerCropExtent = this.extent
-      const recropTileOrig = oldExtentOfInnerTileInRasterCRS.crop(this.extent);  // may be null
+      const layerCropExtent = inSimpleCRS ? extentOfLayer : this.extent
+      const recropTileOrig = oldExtentOfInnerTileInRasterCRS.crop(layerCropExtent);  // may be null
       let maxSamplesAcross = 1;
       let maxSamplesDown   = 1;
       if ( recropTileOrig !== null ) {
-        const recropTile = recropTileOrig.reproj(code).crop(extentOfTileInMapCRS);
+        const recropTileProj = inSimpleCRS ? recropTileOrig : recropTileOrig.reproj(code);
+        const recropTile = recropTileProj.crop(extentOfTileInMapCRS);
         if ( recropTile !== null ) {
           maxSamplesAcross = Math.ceil(resolution *
             (recropTile.width/extentOfTileInMapCRS.width));
