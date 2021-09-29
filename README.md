@@ -115,6 +115,10 @@ Please read about our advanced capabilities including custom context drawing fun
 
 Check out our [Frequently Asked Questions](FAQs.md)
 
+## Videos
+- [Edge Compute: Cool Stuff You Can Do With COGs in the Browser](https://www.youtube.com/watch?v=XTkNhGpfmB8&t=4190s)
+- [2019 - Algorithm Walk-through: How to Visualize a Large GeoTIFF on Your Web Map](https://www.youtube.com/watch?v=K47JvCL99w0)
+
 ## Support
 
 Contact the package author, Daniel J. Dufour, at daniel.j.dufour@gmail.com
