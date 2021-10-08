@@ -47,6 +47,7 @@
         };
         const resolution = 64;
         var layer = new GeoRasterLayer({
+          debugLevel: 4,
           attribution: "Planet",
           georaster: georaster,
           pixelValuesToColorFn: pixelValuesToColorFn,
