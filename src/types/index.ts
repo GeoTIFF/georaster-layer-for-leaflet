@@ -9,6 +9,7 @@ interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   pixelValuesToColorFn?: PixelValuesToColorFn;
   bounds?: LatLngBounds;
   proj4?: Function;
+  resampleMethod?: string
 }
 
 // Ensures at least one of the georaster[s] options is defined while being ok the other is not
@@ -56,6 +57,7 @@ export type GetValuesOptions = {
   right?: number;
   top?: number;
   width: number;
+  resampleMethod?: string
 };
 
 export type GeoRasterValues = number[][][];

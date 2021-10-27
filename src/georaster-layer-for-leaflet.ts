@@ -65,6 +65,10 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         options.keepBuffer = 16;
       }
 
+      if (options.resampleMethod) {
+        this.resampleMethod = options.resampleMethod;
+      }
+
       /*
           Unpacking values for use later.
           We do this in order to increase speed.
@@ -234,12 +238,15 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       console.error("getRasters failed because not all values are finite:", getValuesOptions);
     } else {
       // !note: The types need confirmation - SFR 2021-01-20
-      return Promise.all(this.georasters.map((georaster: GeoRaster) => georaster.getValues(getValuesOptions))).then(
-        valuesByGeoRaster =>
-          valuesByGeoRaster.reduce((result: number[][][], values) => {
-            result = result.concat(values as number[][]);
-            return result;
-          }, [])
+      return Promise.all(
+        this.georasters.map((georaster: GeoRaster) =>
+          georaster.getValues({ ...getValuesOptions, resampleMethod: this.resampleMethod || "bilinear" })
+        )
+      ).then(valuesByGeoRaster =>
+        valuesByGeoRaster.reduce((result: number[][][], values) => {
+          result = result.concat(values as number[][]);
+          return result;
+        }, [])
       );
     }
   },
@@ -522,7 +529,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                     xInRasterPixels = Math.floor((xInSrc - xmin) / pixelWidth);
                     if (xInRasterPixels < 0 || xInRasterPixels >= rasterWidth) continue;
                   }
-
                   let values = null;
                   if (tileRasters) {
                     // get value from array specific to this tile
