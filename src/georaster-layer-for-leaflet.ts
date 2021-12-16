@@ -164,6 +164,23 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       ) {
         this.calcStats = true;
       }
+
+      // if you haven't specified a pixelValuesToColorFn
+      // and the image is YCbCr, add a function to convert YCbCr
+      this.checkIfYCbCr = new Promise(async resolve => {
+        if (this.options.pixelValuesToColorFn) return resolve(true);
+        if (this.georasters.length === 1 && this.georasters[0].numberOfRasters === 3) {
+          const image = await this.georasters[0]._geotiff?.getImage();
+          if (image?.fileDirectory?.PhotometricInterpretation === 6) {
+            this.options.pixelValuesToColorFn = (values: number[]) => {
+              const r = Math.round(values[0] + 1.402 * (values[2] - 0x80));
+              const g = Math.round(values[0] - 0.34414 * (values[1] - 0x80) - 0.71414 * (values[2] - 0x80));
+              const b = Math.round(values[0] + 1.772 * (values[1] - 0x80));
+              return `rgb(${r},${g},${b})`;
+            };
+          }
+        }
+      });
     } catch (error) {
       console.error("ERROR initializing GeoTIFFLayer", error);
     }
@@ -344,47 +361,50 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       if (debugLevel >= 3) log({ heightOfScreenPixelInMapCRS, widthOfScreenPixelInMapCRS });
 
       // expand tile sampling area to align with raster pixels
-      const oldExtentOfInnerTileInRasterCRS = inSimpleCRS ? extentOfInnerTileInMapCRS :
-              extentOfInnerTileInMapCRS.reproj(this.projection);
+      const oldExtentOfInnerTileInRasterCRS = inSimpleCRS
+        ? extentOfInnerTileInMapCRS
+        : extentOfInnerTileInMapCRS.reproj(this.projection);
       const snapped = snap({
         bbox: oldExtentOfInnerTileInRasterCRS.bbox,
         // pad xmax and ymin of container to tolerate ceil() and floor() in snap()
-        container: inSimpleCRS ?
-            [extentOfLayer.xmin, extentOfLayer.ymin - 0.25 * pixelHeight,
-             extentOfLayer.xmax + 0.25 * pixelWidth, extentOfLayer.ymax] :
-            [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
+        container: inSimpleCRS
+          ? [
+              extentOfLayer.xmin,
+              extentOfLayer.ymin - 0.25 * pixelHeight,
+              extentOfLayer.xmax + 0.25 * pixelWidth,
+              extentOfLayer.ymax
+            ]
+          : [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
         debug: debugLevel >= 2,
         origin: inSimpleCRS ? [extentOfLayer.xmin, extentOfLayer.ymax] : [xmin, ymax],
-        scale: [pixelWidth, -pixelHeight]  // negative because origin is at ymax
+        scale: [pixelWidth, -pixelHeight] // negative because origin is at ymax
       });
-      const extentOfInnerTileInRasterCRS =
-        new GeoExtent(snapped.bbox_in_coordinate_system,
-          { srs: inSimpleCRS ? "simple" : this.projection });
+      const extentOfInnerTileInRasterCRS = new GeoExtent(snapped.bbox_in_coordinate_system, {
+        srs: inSimpleCRS ? "simple" : this.projection
+      });
 
       const gridbox = snapped.bbox_in_grid_cells;
       const snappedSamplesAcross = Math.abs(gridbox[2] - gridbox[0]);
-      const snappedSamplesDown   = Math.abs(gridbox[3] - gridbox[1]);
+      const snappedSamplesDown = Math.abs(gridbox[3] - gridbox[1]);
       const rasterPixelsAcross = Math.ceil(oldExtentOfInnerTileInRasterCRS.width / pixelWidth);
       const rasterPixelsDown = Math.ceil(oldExtentOfInnerTileInRasterCRS.height / pixelHeight);
       const { resolution } = this.options;
-      const layerCropExtent = inSimpleCRS ? extentOfLayer : this.extent
-      const recropTileOrig = oldExtentOfInnerTileInRasterCRS.crop(layerCropExtent);  // may be null
+      const layerCropExtent = inSimpleCRS ? extentOfLayer : this.extent;
+      const recropTileOrig = oldExtentOfInnerTileInRasterCRS.crop(layerCropExtent); // may be null
       let maxSamplesAcross = 1;
-      let maxSamplesDown   = 1;
-      if ( recropTileOrig !== null ) {
+      let maxSamplesDown = 1;
+      if (recropTileOrig !== null) {
         const recropTileProj = inSimpleCRS ? recropTileOrig : recropTileOrig.reproj(code);
         const recropTile = recropTileProj.crop(extentOfTileInMapCRS);
-        if ( recropTile !== null ) {
-          maxSamplesAcross = Math.ceil(resolution *
-            (recropTile.width/extentOfTileInMapCRS.width));
-          maxSamplesDown   = Math.ceil(resolution *
-            (recropTile.height/extentOfTileInMapCRS.height));
+        if (recropTile !== null) {
+          maxSamplesAcross = Math.ceil(resolution * (recropTile.width / extentOfTileInMapCRS.width));
+          maxSamplesDown = Math.ceil(resolution * (recropTile.height / extentOfTileInMapCRS.height));
         }
       }
       const overdrawTileAcross = rasterPixelsAcross < maxSamplesAcross;
-      const overdrawTileDown   = rasterPixelsDown   < maxSamplesDown;
+      const overdrawTileDown = rasterPixelsDown < maxSamplesDown;
       const numberOfSamplesAcross = overdrawTileAcross ? snappedSamplesAcross : maxSamplesAcross;
-      const numberOfSamplesDown   = overdrawTileDown   ? snappedSamplesDown   : maxSamplesDown  ;
+      const numberOfSamplesDown = overdrawTileDown ? snappedSamplesDown : maxSamplesDown;
 
       if (debugLevel >= 3)
         console.log(
@@ -394,7 +414,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
       // Reprojecting the bounding box back to the map CRS would expand it
       // (unless the projection is purely scaling and translation),
-      // so instead just extend the old map bounding box proportionately. 
+      // so instead just extend the old map bounding box proportionately.
       {
         const oldrb = new GeoExtent(oldExtentOfInnerTileInRasterCRS.bbox);
         const newrb = new GeoExtent(extentOfInnerTileInRasterCRS.bbox);
@@ -404,8 +424,14 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           let n1 = ((newrb.ymin - oldrb.ymin) / oldrb.height) * oldmb.height;
           let n2 = ((newrb.xmax - oldrb.xmax) / oldrb.width) * oldmb.width;
           let n3 = ((newrb.ymax - oldrb.ymax) / oldrb.height) * oldmb.height;
-          if ( ! overdrawTileAcross ) { n0 = Math.max(n0,0); n2 = Math.min(n2,0); }
-          if ( ! overdrawTileDown   ) { n1 = Math.max(n1,0); n3 = Math.min(n3,0); }
+          if (!overdrawTileAcross) {
+            n0 = Math.max(n0, 0);
+            n2 = Math.min(n2, 0);
+          }
+          if (!overdrawTileDown) {
+            n1 = Math.max(n1, 0);
+            n3 = Math.min(n3, 0);
+          }
           const newbox = [oldmb.xmin + n0, oldmb.ymin + n1, oldmb.xmax + n2, oldmb.ymax + n3];
           extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
         }
@@ -455,10 +481,10 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       }
 
       const canvasPadding = {
-        left: Math.max(padding.left,0),
-        right: Math.max(padding.right,0),
-        top: Math.max(padding.top,0),
-        bottom: Math.max(padding.bottom,0)
+        left: Math.max(padding.left, 0),
+        right: Math.max(padding.right, 0),
+        top: Math.max(padding.top, 0),
+        bottom: Math.max(padding.bottom, 0)
       };
       const canvasHeight = this.tileHeight - canvasPadding.top - canvasPadding.bottom;
       const canvasWidth = this.tileWidth - canvasPadding.left - canvasPadding.right;
@@ -539,8 +565,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
             const latWestPoint = L.point(xLeftOfInnerTile, yCenterInMapPixels);
             const { lat } = map.unproject(latWestPoint, zoom);
             if (lat > yMinOfLayer && lat < yMaxOfLayer) {
-              const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels)
-                + Math.min(padding.top,0);
+              const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels) + Math.min(padding.top, 0);
 
               let yInRasterPixels = 0;
               if (inSimpleCRS || this.projection === EPSG4326) {
@@ -582,8 +607,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                   }
 
                   // x-axis coordinate of the starting point of the rectangle representing the raster pixel
-                  const x = Math.round(w * widthOfSampleInScreenPixels)
-                    + Math.min(padding.left,0);
+                  const x = Math.round(w * widthOfSampleInScreenPixels) + Math.min(padding.left, 0);
 
                   // y-axis coordinate of the starting point of the rectangle representing the raster pixel
                   const y = yInTilePixels;
