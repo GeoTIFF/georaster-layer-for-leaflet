@@ -191,18 +191,18 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       returns the y and x values in the original raster
     */
     const rasterCoordsForTileCoords = (h: number, w: number): { x: number; y: number } | null => {
-      const xCenterInMapPixels = innerTileTopLeftPoint.x + (w + 0.5) * widthOfSampleInScreenPixels;
-      const yCenterInMapPixels = innerTileTopLeftPoint.y + (h + 0.5) * heightOfSampleInScreenPixels;
+      const xInMapPixels = innerTileTopLeftPoint.x + w * widthOfSampleInScreenPixels;
+      const yInMapPixels = innerTileTopLeftPoint.y + h * heightOfSampleInScreenPixels;
 
-      const mapPoint = L.point(xCenterInMapPixels, yCenterInMapPixels);
+      const mapPoint = L.point(xInMapPixels, yInMapPixels);
       if (this.debugLevel >= 1) log({ mapPoint });
 
       const { lat, lng } = this.getMap().unproject(mapPoint, zoom);
 
       if (this.projection === EPSG4326) {
         return {
-          y: Math.floor((ymax - lat) / this.pixelHeight),
-          x: Math.floor((lng - xmin) / this.pixelWidth)
+          y: Math.round((ymax - lat) / this.pixelHeight),
+          x: Math.round((lng - xmin) / this.pixelWidth)
         };
       } else if (this.getProjector()) {
         /* source raster doesn't use latitude and longitude,
@@ -213,8 +213,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           if (this.debugLevel >= 1) console.error("projector converted", [lng, lat], "to", [x, y]);
         }
         return {
-          y: Math.floor((ymax - y) / this.pixelHeight),
-          x: Math.floor((x - xmin) / this.pixelWidth)
+          y: Math.round((ymax - y) / this.pixelHeight),
+          x: Math.round((x - xmin) / this.pixelWidth)
         };
       } else {
         return null;
@@ -223,7 +223,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
     // careful not to flip min_y/max_y here
     const topLeft = rasterCoordsForTileCoords(0, 0);
-    const bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown - 1, numberOfSamplesAcross - 1);
+    const bottomRight = rasterCoordsForTileCoords(numberOfSamplesDown, numberOfSamplesAcross);
 
     const getValuesOptions = {
       bottom: bottomRight?.y,
@@ -286,7 +286,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       if (debugLevel >= 2) log({ inSimpleCRS });
 
       // Unpacking values for increased speed
-      const { rasters, xmin, ymax } = this;
+      const { rasters, xmin, xmax, ymin, ymax } = this;
       const rasterHeight = this.height;
       const rasterWidth = this.width;
 
@@ -343,22 +343,48 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const heightOfScreenPixelInMapCRS = extentOfTileInMapCRS.height / this.tileHeight;
       if (debugLevel >= 3) log({ heightOfScreenPixelInMapCRS, widthOfScreenPixelInMapCRS });
 
-      const xScaleSignInMapCRS = Math.sign(mapCRS?.transformation?._a || 1);
-      const yScaleSignInMapCRS = Math.sign(mapCRS?.transformation?._c || -1);
-      if (debugLevel >= 3) log({ xScaleSignInMapCRS, yScaleSignInMapCRS });
-
-      const xScaleOfScreenPixelInMapCRS = xScaleSignInMapCRS * widthOfScreenPixelInMapCRS;
-      const yScaleOfScreenPixelInMapCRS = yScaleSignInMapCRS * heightOfScreenPixelInMapCRS;
-      if (debugLevel >= 3) log({ xScaleOfScreenPixelInMapCRS, yScaleOfScreenPixelInMapCRS });
-
+      // expand tile sampling area to align with raster pixels
+      const oldExtentOfInnerTileInRasterCRS = inSimpleCRS ? extentOfInnerTileInMapCRS :
+              extentOfInnerTileInMapCRS.reproj(this.projection);
       const snapped = snap({
-        bbox: extentOfInnerTileInMapCRS.bbox,
-        container: extentOfTileInMapCRS.bbox,
+        bbox: oldExtentOfInnerTileInRasterCRS.bbox,
+        // pad xmax and ymin of container to tolerate ceil() and floor() in snap()
+        container: inSimpleCRS ?
+            [extentOfLayer.xmin, extentOfLayer.ymin - 0.25 * pixelHeight,
+             extentOfLayer.xmax + 0.25 * pixelWidth, extentOfLayer.ymax] :
+            [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
         debug: debugLevel >= 2,
-        origin: [extentOfTileInMapCRS.xmin, extentOfTileInMapCRS.ymax],
-        padding: [1, 1], // add extra padding to cautiously handle floating point arithmetic
-        scale: [xScaleOfScreenPixelInMapCRS, yScaleOfScreenPixelInMapCRS]
+        origin: inSimpleCRS ? [extentOfLayer.xmin, extentOfLayer.ymax] : [xmin, ymax],
+        scale: [pixelWidth, -pixelHeight]  // negative because origin is at ymax
       });
+      const extentOfInnerTileInRasterCRS =
+        new GeoExtent(snapped.bbox_in_coordinate_system,
+          { srs: inSimpleCRS ? "simple" : this.projection });
+
+      const gridbox = snapped.bbox_in_grid_cells;
+      const snappedSamplesAcross = Math.abs(gridbox[2] - gridbox[0]);
+      const snappedSamplesDown   = Math.abs(gridbox[3] - gridbox[1]);
+      const rasterPixelsAcross = Math.ceil(oldExtentOfInnerTileInRasterCRS.width / pixelWidth);
+      const rasterPixelsDown = Math.ceil(oldExtentOfInnerTileInRasterCRS.height / pixelHeight);
+      const { resolution } = this.options;
+      const layerCropExtent = inSimpleCRS ? extentOfLayer : this.extent
+      const recropTileOrig = oldExtentOfInnerTileInRasterCRS.crop(layerCropExtent);  // may be null
+      let maxSamplesAcross = 1;
+      let maxSamplesDown   = 1;
+      if ( recropTileOrig !== null ) {
+        const recropTileProj = inSimpleCRS ? recropTileOrig : recropTileOrig.reproj(code);
+        const recropTile = recropTileProj.crop(extentOfTileInMapCRS);
+        if ( recropTile !== null ) {
+          maxSamplesAcross = Math.ceil(resolution *
+            (recropTile.width/extentOfTileInMapCRS.width));
+          maxSamplesDown   = Math.ceil(resolution *
+            (recropTile.height/extentOfTileInMapCRS.height));
+        }
+      }
+      const overdrawTileAcross = rasterPixelsAcross < maxSamplesAcross;
+      const overdrawTileDown   = rasterPixelsDown   < maxSamplesDown;
+      const numberOfSamplesAcross = overdrawTileAcross ? snappedSamplesAcross : maxSamplesAcross;
+      const numberOfSamplesDown   = overdrawTileDown   ? snappedSamplesDown   : maxSamplesDown  ;
 
       if (debugLevel >= 3)
         console.log(
@@ -366,15 +392,45 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
             extentOfInnerTileInMapCRS.reproj(inSimpleCRS ? "simple" : 4326).bbox.toString()
         );
 
-      // reset inner tile to the snapped version
-      extentOfInnerTileInMapCRS = new GeoExtent(snapped.bbox_in_coordinate_system, {
-        srs: inSimpleCRS ? "simple" : code
-      });
+      // Reprojecting the bounding box back to the map CRS would expand it
+      // (unless the projection is purely scaling and translation),
+      // so instead just extend the old map bounding box proportionately. 
+      {
+        const oldrb = new GeoExtent(oldExtentOfInnerTileInRasterCRS.bbox);
+        const newrb = new GeoExtent(extentOfInnerTileInRasterCRS.bbox);
+        const oldmb = new GeoExtent(extentOfInnerTileInMapCRS.bbox);
+        if (oldrb.width !== 0 && oldrb.height !== 0) {
+          let n0 = ((newrb.xmin - oldrb.xmin) / oldrb.width) * oldmb.width;
+          let n1 = ((newrb.ymin - oldrb.ymin) / oldrb.height) * oldmb.height;
+          let n2 = ((newrb.xmax - oldrb.xmax) / oldrb.width) * oldmb.width;
+          let n3 = ((newrb.ymax - oldrb.ymax) / oldrb.height) * oldmb.height;
+          if ( ! overdrawTileAcross ) { n0 = Math.max(n0,0); n2 = Math.min(n2,0); }
+          if ( ! overdrawTileDown   ) { n1 = Math.max(n1,0); n3 = Math.min(n3,0); }
+          const newbox = [oldmb.xmin + n0, oldmb.ymin + n1, oldmb.xmax + n2, oldmb.ymax + n3];
+          extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
+        }
+      }
+
+      // create outline around raster pixels
+      if (debugLevel >= 4) {
+        if (!this._cache.innerTile[cacheKey]) {
+          const ext = inSimpleCRS ? extentOfInnerTileInMapCRS : extentOfInnerTileInMapCRS.reproj(4326);
+          this._cache.innerTile[cacheKey] = L.rectangle(ext.leafletBounds, {
+            color: "#F00",
+            dashArray: "5, 10",
+            fillOpacity: 0
+          }).addTo(this.getMap());
+        }
+      }
+
       if (debugLevel >= 3)
         console.log(
           "[georaster-layer-for-leaflet] extent of inner tile after snapping " +
             extentOfInnerTileInMapCRS.reproj(inSimpleCRS ? "simple" : 4326).bbox.toString()
         );
+
+      // Note that the snapped "inner" tile may extend beyond the original tile,
+      // in which case the padding values will be negative.
 
       // we round here because sometimes there will be slight floating arithmetic issues
       // where the padding is like 0.00000000000001
@@ -390,54 +446,35 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const innerTileWidth = this.tileWidth - padding.left - padding.right;
       if (debugLevel >= 3) log({ innerTileHeight, innerTileWidth });
 
-      const xMinOfInnerTileInMapCRS = extentOfTileInMapCRS.xmin + padding.left * widthOfScreenPixelInMapCRS;
-      const yMinOfInnerTileInMapCRS = extentOfTileInMapCRS.ymin + padding.bottom * heightOfScreenPixelInMapCRS;
-      const xMaxOfInnerTileInMapCRS = extentOfInnerTileInMapCRS.xmax - padding.right * widthOfScreenPixelInMapCRS;
-      const yMaxOfInnerTileInMapCRS = extentOfTileInMapCRS.ymax - padding.top * heightOfScreenPixelInMapCRS;
-      if (debugLevel >= 4)
+      if (debugLevel >= 4) {
+        const xMinOfInnerTileInMapCRS = extentOfTileInMapCRS.xmin + padding.left * widthOfScreenPixelInMapCRS;
+        const yMinOfInnerTileInMapCRS = extentOfTileInMapCRS.ymin + padding.bottom * heightOfScreenPixelInMapCRS;
+        const xMaxOfInnerTileInMapCRS = extentOfTileInMapCRS.xmax - padding.right * widthOfScreenPixelInMapCRS;
+        const yMaxOfInnerTileInMapCRS = extentOfTileInMapCRS.ymax - padding.top * heightOfScreenPixelInMapCRS;
         log({ xMinOfInnerTileInMapCRS, yMinOfInnerTileInMapCRS, xMaxOfInnerTileInMapCRS, yMaxOfInnerTileInMapCRS });
+      }
+
+      const canvasPadding = {
+        left: Math.max(padding.left,0),
+        right: Math.max(padding.right,0),
+        top: Math.max(padding.top,0),
+        bottom: Math.max(padding.bottom,0)
+      };
+      const canvasHeight = this.tileHeight - canvasPadding.top - canvasPadding.bottom;
+      const canvasWidth = this.tileWidth - canvasPadding.left - canvasPadding.right;
 
       // set padding and size of canvas tile
-      tile.style.paddingTop = padding.top + "px";
-      tile.style.paddingRight = padding.right + "px";
-      tile.style.paddingBottom = padding.bottom + "px";
-      tile.style.paddingLeft = padding.left + "px";
+      tile.style.paddingTop = canvasPadding.top + "px";
+      tile.style.paddingRight = canvasPadding.right + "px";
+      tile.style.paddingBottom = canvasPadding.bottom + "px";
+      tile.style.paddingLeft = canvasPadding.left + "px";
 
-      tile.height = innerTileHeight;
-      tile.style.height = innerTileHeight + "px";
+      tile.height = canvasHeight;
+      tile.style.height = canvasHeight + "px";
 
-      tile.width = innerTileWidth;
-      tile.style.width = innerTileWidth + "px";
-      if (debugLevel >= 3) console.log("setting tile height to " + innerTileHeight + "px");
-
-      // calculate height and width of the Leaflet tile
-      // in the number of pixels from the original raster
-      let rasterPixelsAcross = 0;
-      let rasterPixelsDown = 0;
-      if (inSimpleCRS) {
-        rasterPixelsAcross = Math.ceil(extentOfInnerTileInMapCRS.width / pixelWidth);
-        rasterPixelsDown = Math.ceil(extentOfInnerTileInMapCRS.height / pixelHeight);
-      } else {
-        const extentOfInnerTileInRasterCRS = extentOfInnerTileInMapCRS.reproj(this.projection);
-        rasterPixelsAcross = Math.ceil(extentOfInnerTileInRasterCRS.width / pixelWidth);
-        rasterPixelsDown = Math.ceil(extentOfInnerTileInRasterCRS.height / pixelHeight);
-      }
-      if (debugLevel >= 4) log({ rasterPixelsAcross, rasterPixelsDown });
-
-      const { resolution } = this.options;
-
-      const percentHeight = innerTileHeight / this.tileHeight;
-      const percentWidth = innerTileWidth / this.tileWidth;
-      if (debugLevel >= 4) log({ percentHeight, percentWidth });
-
-      const maxNumberOfSamplesAcross = Math.ceil(percentWidth * resolution);
-      const maxNumberOfSamplesDown = Math.ceil(percentHeight * resolution);
-      if (debugLevel >= 4) console.log({ maxNumberOfSamplesAcross, maxNumberOfSamplesDown });
-
-      // limit repeat sampling of the same pixel but also reducing aliasing at high zoom
-      const numberOfSamplesAcross = Math.min(maxNumberOfSamplesAcross, 3 * rasterPixelsAcross);
-      if (debugLevel >= 4) console.log({ resolution, rasterPixelsAcross, numberOfSamplesAcross });
-      const numberOfSamplesDown = Math.min(maxNumberOfSamplesDown, 3 * rasterPixelsDown);
+      tile.width = canvasWidth;
+      tile.style.width = canvasWidth + "px";
+      if (debugLevel >= 3) console.log("setting tile height to " + canvasHeight + "px");
 
       // set how large to display each sample in screen pixels
       const heightOfSampleInScreenPixels = innerTileHeight / numberOfSamplesDown;
@@ -502,7 +539,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
             const latWestPoint = L.point(xLeftOfInnerTile, yCenterInMapPixels);
             const { lat } = map.unproject(latWestPoint, zoom);
             if (lat > yMinOfLayer && lat < yMaxOfLayer) {
-              const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels);
+              const yInTilePixels = Math.round(h * heightOfSampleInScreenPixels)
+                + Math.min(padding.top,0);
 
               let yInRasterPixels = 0;
               if (inSimpleCRS || this.projection === EPSG4326) {
@@ -544,7 +582,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                   }
 
                   // x-axis coordinate of the starting point of the rectangle representing the raster pixel
-                  const x = Math.round(w * widthOfSampleInScreenPixels);
+                  const x = Math.round(w * widthOfSampleInScreenPixels)
+                    + Math.min(padding.left,0);
 
                   // y-axis coordinate of the starting point of the rectangle representing the raster pixel
                   const y = yInTilePixels;
