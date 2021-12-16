@@ -560,6 +560,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
             }
           }
 
+          await this.checkIfYCbCr;
+
           for (let h = 0; h < numberOfSamplesDown; h++) {
             const yCenterInMapPixels = yTopOfInnerTile + (h + 0.5) * heightOfSampleInScreenPixels;
             const latWestPoint = L.point(xLeftOfInnerTile, yCenterInMapPixels);
