@@ -1,6 +1,6 @@
 # georaster-layer-for-leaflet
 
-Display GeoTIFFs and soon other types of rasters on your Leaflet Map
+Muestre GeoTIFF en su mapa de LeafletJS
 
 ## Install
 
@@ -8,22 +8,21 @@ Display GeoTIFFs and soon other types of rasters on your Leaflet Map
 npm install georaster-layer-for-leaflet
 ```
 
-## GeoRaster Prerequisite
+## GeoRaster Requisitos
 
-GeoRasterLayer requires that input be first converted into GeoRaster format.
-You can install GeoRaster with the following command:
-
+GeoRasterLayer requiere que su datos convertido en la forma de GeoRaster.
+Su instala GeoRaster por esta:
 ```bash
 npm install georaster
 ```
 
-## Load Package via Script Tag
+## Instala via `<script/>`
 
 ```html
 <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js">
 ```
 
-## Usage
+## Uso
 
 ```javascript
 new GeoRasterLayer({ georaster }).addTo(map);
@@ -33,22 +32,22 @@ new GeoRasterLayer({ georaster }).addTo(map);
 
 - <https://geotiff.github.io/georaster-layer-for-leaflet-example/>
 - <https://geotiff.github.io/georaster-layer-for-leaflet-example/examples/load-file.html>
-- More Here: <https://github.com/GeoTIFF/georaster-layer-for-leaflet-example>
+- Más Aquí: <https://github.com/GeoTIFF/georaster-layer-for-leaflet-example>
 
-## Why
+## El Propósito
 
-- Support for nearly all projections, thanks to [proj4-fully-loaded](https://github.com/danieljdufour/proj4-fully-loaded) and [epsg.io](https://epsg.io/)
-- Super faster rendering thanks to a simple nearest neighbor interpolation
-- Use of web workers means seamless integration that doesn't block main thread
-- Loads large geotiffs greater than a hundred megabytes
-- Supports custom rendering including custom colors, directional arrows, and context drawing
-- Doesn't depend on WebGL
+- La mayoría de las proyecciones funciona a causo de [proj4-fully-loaded](https://github.com/danieljdufour/proj4-fully-loaded) y [epsg.io](https://epsg.io/)
+- Visualización súper rápida a causo de a una interpolación de vecino más cercano
+- Use WebWorkers para que el "main thread" no esté bloqueado
+- LVisualice 100MB+ GeoTIFF
+- Representación personalizada que incluye colores personalizados, flechas direccionales y dibujo de contexto
+- No requiere WebGL
 
 ## The GeoRasterLayer Class
 
-A custom class for rendering GeoTIFF's (including COG's) on a leaflet map. The layer extends L.GridLayer, see the [docs](https://leafletjs.com/reference-1.7.1.html#gridlayer) for inherited options and methods.
+Una clase personalizada para representar GeoTIFF (incluidos los COG) en un mapa de LeafletJS. La capa extiende L.GridLayer, consulte los [docs](https://leafletjs.com/reference-1.7.1.html#gridlayer) para conocer las opciones y los métodos heredados.
 
-### Usage Example
+### Uno Ejemplo
 
 Source Code: <https://github.com/GeoTIFF/georaster-layer-for-leaflet-example/blob/master/main.js>
 
@@ -57,10 +56,10 @@ var parse_georaster = require("georaster");
 
 var GeoRasterLayer = require("georaster-layer-for-leaflet");
 
-// initalize leaflet map
+// empieze el mapa de LeafletJS
 var map = L.map('map').setView([0, 0], 5);
 
-// add OpenStreetMap basemap
+// incluye datos de OpenStreetMap 
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
@@ -74,13 +73,13 @@ fetch(url_to_geotiff_file)
       console.log("georaster:", georaster);
 
       /*
-          GeoRasterLayer is an extension of GridLayer,
-          which means can use GridLayer options like opacity.
+          GeoRasterLayer es una extensión de GridLayer,
+          lo que significa que se puede usar opciones de GridLayer como la opacidad.
 
-          Just make sure to include the georaster option!
+          Necesito incluir la opción georaster!
 
-          Optionally set the pixelValuesToColorFn function option to customize
-          how values for a pixel are translated to a color.
+          Opcionalmente, use la función pixelValuesToColorFn para cambiar
+          cómo los valores de un píxel se traducen a un color.
 
           http://leafletjs.com/reference-1.2.0.html#gridlayer
       */
@@ -88,7 +87,7 @@ fetch(url_to_geotiff_file)
           georaster: georaster,
           opacity: 0.7,
           pixelValuesToColorFn: values => values[0] === 42 ? '#ffffff' : '#000000',
-          resolution: 64 // optional parameter for adjusting display resolution
+          resolution: 64 // parámetro opcional para ajustar la resolución de la pantalla
       });
       layer.addTo(map);
 
@@ -101,24 +100,24 @@ fetch(url_to_geotiff_file)
 <!-- ## Options -->
 <!-- todo: add a table of options for GeoRasterLayer -->
 
-### Methods
+### Métodos
 
-| Method                                      | Returns | Description                                                                                                                                                                                                                                                                                                                                                                                    |
+| Método                                      | Resulto | Descripción                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| updateColors(pixelValuesToColorFn, options) | this    | Causes the tiles to redraw without clearing them first. It uses the updated `pixelValuesToColorFn` function. You can set a debugLevel specific to this function by passing in an options object with a debugLevel property.  For example, you can turn on the console debugs for this method by setting `debugLevel = 1` in the options (even if you created the layer with `debugLevel = 0`). |
+| updateColors(pixelValuesToColorFn, options) | this    | Hace que las fichas se vuelvan a dibujar sin borrarlas primero. Utiliza la función `pixelValuesToColorFn`. Se puede usa un debugLevel específico para esta función pasando un objeto de opciones con una propiedad debugLevel. Por ejemplo, puede activar las depuraciones de la consola para este método configurando `debugLevel = 1` en las opciones. | |
 
-## Advanced Capabilities
+## Capacidades Avanzadas
 
-Please read about our advanced capabilities including custom context drawing functions and displaying directional arrows in [ADVANCED.md](ADVANCED.md).
+Lea acerca de nuestras capacidades avanzadas, incluidas las funciones de dibujo de contexto personalizadas y la visualización de flechas direccionales en [ADVANCED.md](ADVANCED.md).
 
-## More Questions
+## Más Preguntas
 
-Check out our [Frequently Asked Questions](FAQs.md)
+Lee esto: [Frequently Asked Questions](FAQs.md)
 
 ## Videos
 - [Edge Compute: Cool Stuff You Can Do With COGs in the Browser](https://www.youtube.com/watch?v=XTkNhGpfmB8&t=4190s)
 - [2019 - Algorithm Walk-through: How to Visualize a Large GeoTIFF on Your Web Map](https://www.youtube.com/watch?v=K47JvCL99w0)
 
-## Support
+## Ayuda
 
-Contact the package author, Daniel J. Dufour, at daniel.j.dufour@gmail.com
+Envia un correo electrónico al autor, daniel.j.dufour@gmail.com
