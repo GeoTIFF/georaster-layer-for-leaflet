@@ -15,7 +15,7 @@
     "build:webpack": "webpack",
     "build": "npm run clean && npm run build:babel && npm run build:webpack && npm run build:webpack:lite && npm run build:main",
     "dev": "concurrently \"npm run serve\" \"webpack --watch\" ",
-    "format": "prettier --write ./src/georaster-layer-for-leaflet.ts webpack.config.js",
+    "format": "prettier --write ./src/georaster-layer-for-leaflet.ts webpack.config.js && npm run fix",
     "check-types": "tsc",
     "fix": "eslint ./src/georaster-layer-for-leaflet.ts --fix",
     "lint": "eslint ./src/georaster-layer-for-leaflet.ts",

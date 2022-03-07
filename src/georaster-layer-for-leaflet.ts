@@ -369,11 +369,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         // pad xmax and ymin of container to tolerate ceil() and floor() in snap()
         container: inSimpleCRS
           ? [
-              extentOfLayer.xmin,
-              extentOfLayer.ymin - 0.25 * pixelHeight,
-              extentOfLayer.xmax + 0.25 * pixelWidth,
-              extentOfLayer.ymax
-            ]
+            extentOfLayer.xmin,
+            extentOfLayer.ymin - 0.25 * pixelHeight,
+            extentOfLayer.xmax + 0.25 * pixelWidth,
+            extentOfLayer.ymax
+          ]
           : [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
         debug: debugLevel >= 2,
         origin: inSimpleCRS ? [extentOfLayer.xmin, extentOfLayer.ymax] : [xmin, ymax],
