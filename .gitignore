@@ -60,6 +60,7 @@ typings/
 
 # lock files
 *package-lock.json
+pnpm-lock.yaml
 
 *.tiff
 *.tif
@@ -77,3 +78,4 @@ georaster-layer-for-leaflet.*
 
 # backup files
 *bak*
+
