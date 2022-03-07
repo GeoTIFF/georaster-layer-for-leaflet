@@ -1,3 +1,7 @@
+🇺🇦 "Leaflet was created 11 years ago by Vladimir Agafonkin, an Ukrainian citizen living in Kyiv." - ([LeafletJS](https://leafletjs.com/))
+
+--------------------------------------------------------------------------------
+
 # georaster-layer-for-leaflet
 
 Display GeoTIFFs and soon other types of rasters on your Leaflet Map
