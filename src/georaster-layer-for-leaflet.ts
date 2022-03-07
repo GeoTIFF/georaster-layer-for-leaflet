@@ -643,7 +643,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
               }
             }
           }
-        } catch (e) {
+        } catch (e: any) {
           error = e;
         }
 
@@ -652,7 +652,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
       // return the tile so it can be rendered on screen
       return tile;
-    } catch (error) {
+    } catch (error: any) {
       done && done(error, tile);
     }
   },
