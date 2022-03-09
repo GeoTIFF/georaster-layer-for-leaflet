@@ -180,6 +180,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
             };
           }
         }
+        return resolve(true);
       });
     } catch (error) {
       console.error("ERROR initializing GeoTIFFLayer", error);
@@ -401,6 +402,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           maxSamplesDown = Math.ceil(resolution * (recropTile.height / extentOfTileInMapCRS.height));
         }
       }
+
       const overdrawTileAcross = rasterPixelsAcross < maxSamplesAcross;
       const overdrawTileDown = rasterPixelsDown < maxSamplesDown;
       const numberOfSamplesAcross = overdrawTileAcross ? snappedSamplesAcross : maxSamplesAcross;
@@ -501,6 +503,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       tile.width = canvasWidth;
       tile.style.width = canvasWidth + "px";
       if (debugLevel >= 3) console.log("setting tile height to " + canvasHeight + "px");
+      if (debugLevel >= 3) console.log("setting tile width to " + canvasWidth + "px");
 
       // set how large to display each sample in screen pixels
       const heightOfSampleInScreenPixels = innerTileHeight / numberOfSamplesDown;
