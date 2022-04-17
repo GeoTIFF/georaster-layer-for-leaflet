@@ -61,6 +61,7 @@ typings/
 # lock files
 *package-lock.json
 pnpm-lock.yaml
+.pnpm-store/
 
 *.tiff
 *.tif
