@@ -114,7 +114,7 @@ fetch(url_to_geotiff_file)
 
 ## Advanced Capabilities
 
-Please read about our advanced capabilities including custom context drawing functions and displaying directional arrows in [ADVANCED.md](ADVANCED.md).
+Please read about our advanced capabilities including custom context drawing functions, displaying directional arrows, and masking in [ADVANCED.md](ADVANCED.md).
 
 ## More Questions
 
