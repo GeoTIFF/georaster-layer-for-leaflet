@@ -47,6 +47,7 @@ new GeoRasterLayer({ georaster }).addTo(map);
 - Loads large geotiffs greater than a hundred megabytes
 - Supports custom rendering including custom colors, directional arrows, and context drawing
 - Doesn't depend on WebGL
+- Mask data inside or outside a given geometry
 
 ## The GeoRasterLayer Class
 
