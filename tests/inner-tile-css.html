@@ -31,7 +31,7 @@
       }).addTo(map);
 
       const rasterUrl =
-        "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif";
+        "https://storage.googleapis.com/pdd-stac/disasters/hurricane-harvey/0831/20170831_172754_101c_3b_Visual.tif";
       parseGeoraster(rasterUrl).then(georaster => {
         const lyr = new GeoRasterLayer({
           attribution: "Planet",
