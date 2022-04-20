@@ -20,7 +20,6 @@
   "rules": {
     "@typescript-eslint/ban-ts-comment": "warn",
     "arrow-parens": ["error", "as-needed"],
-    "camelcase": "error",
     "comma-dangle": ["error", { "objects": "never" }],
     "indent": ["error", 2],
     "linebreak-style": ["error", "unix"],
