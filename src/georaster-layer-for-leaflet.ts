@@ -2,6 +2,7 @@
 import "regenerator-runtime/runtime";
 import * as L from "leaflet";
 import chroma from "chroma-js";
+import geocanvas from "geocanvas";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
 import type { Coords, DoneCallback, LatLngBounds, LatLngTuple } from "leaflet";
@@ -17,6 +18,8 @@ import type {
   GeoRasterKeys,
   GetRasterOptions,
   DrawTileOptions,
+  Mask,
+  MaskStrategy,
   PixelValuesToColorFn,
   Tile
 } from "./types";
@@ -124,6 +127,19 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         }, []);
         if (this.debugLevel > 1) console.log("this.rasters:", this.rasters);
       }
+
+      if (options.mask) {
+        if (typeof options.mask === "string") {
+          this.mask = fetch(options.mask).then(r => r.json()) as Promise<Mask>;
+        } else if (typeof options.mask === "object") {
+          this.mask = Promise.resolve(options.mask);
+        }
+
+        // default mask srs is the EPSG:4326 projection used by GeoJSON
+        this.mask_srs = options.mask_srs || "EPSG:4326";
+      }
+
+      this.mask_strategy = (options.mask_strategy || "outside") as MaskStrategy;
 
       this.chroma = chroma;
       this.scale = chroma.scale();
@@ -252,7 +268,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       width: numberOfSamplesAcross
     };
 
-    if (!Object.values(getValuesOptions).every(isFinite)) {
+    if (!Object.values(getValuesOptions).every(it => it !== undefined && isFinite(it))) {
       console.error("getRasters failed because not all values are finite:", getValuesOptions);
     } else {
       // !note: The types need confirmation - SFR 2021-01-20
@@ -275,6 +291,9 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
     // we do this because sometimes css normalizers will set * to box-sizing: border-box
     tile.style.boxSizing = "content-box";
+
+    // start tile hidden
+    tile.style.visibility = "hidden";
 
     const context = tile.getContext("2d");
     // note that we aren't setting the tile height or width here
@@ -646,10 +665,31 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
               }
             }
           }
+
+          if (this.mask) {
+            if (inSimpleCRS) {
+              console.warn("[georaster-layer-for-leaflet] mask is not supported when using simple projection");
+            } else {
+              this.mask.then((mask: Mask) => {
+                geocanvas.maskCanvas({
+                  canvas: tile,
+                  // eslint-disable-next-line camelcase
+                  canvas_bbox: extentOfInnerTileInMapCRS.bbox, // need to support simple projection too
+                  // eslint-disable-next-line camelcase
+                  canvas_srs: 3857, // default map crs, need to support simple
+                  mask,
+                  // eslint-disable-next-line camelcase
+                  mask_srs: this.mask_srs,
+                  strategy: this.mask_strategy // hide everything inside or outside the mask
+                });
+              });
+            }
+          }
+
+          tile.style.visibility = "visible"; // set to default
         } catch (e: any) {
           error = e;
         }
-
         done && done(error, tile);
       }, 0);
 

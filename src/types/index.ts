@@ -1,15 +1,35 @@
 /* eslint-disable camelcase */
 import type { GridLayerOptions, Coords, CRS, DoneCallback, LatLngBounds, Transformation } from "leaflet";
+import type { Feature, FeatureCollection, Polygon, MultiPolygon } from "geojson";
+
+export type MaskStrategy = "inside" | "outside";
 
 export type PixelValuesToColorFn = (values: number[]) => string;
 
+export type DebugLevel = 0 | 1 | 2 | 3 | 4 | 5;
+
+export type ResampleMethod = "bilinear" | "near";
+
+export type SimplePoint = {
+  x: number;
+  y: number;
+};
+
+export type Mask = Feature | FeatureCollection | Polygon | MultiPolygon;
+
 interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number;
-  debugLevel?: 0 | 1 | 2 | 3 | 4;
+  debugLevel?: DebugLevel;
   pixelValuesToColorFn?: PixelValuesToColorFn;
   bounds?: LatLngBounds;
   proj4?: Function;
-  resampleMethod?: string
+  resampleMethod?: ResampleMethod;
+  mask?: Mask;
+  mask_srs?: string | number;
+  mask_strategy?: MaskStrategy;
+  updateWhenIdle?: boolean; // inherited from LeafletJS
+  updateWhenZooming?: boolean; // inherited from LeafletJS
+  keepBuffer?: number; // inherited from LeafletJS
 }
 
 // Ensures at least one of the georaster[s] options is defined while being ok the other is not
@@ -23,14 +43,14 @@ type GeoRasterLayerOptions_GeoRaster =
 export type GeoRasterLayerOptions = GeoRasterLayerOptions_CommonOptions & GeoRasterLayerOptions_GeoRaster;
 
 export type GetRasterOptions = {
-  innerTileTopLeftPoint: any;
-  heightOfSampleInScreenPixels: any;
-  widthOfSampleInScreenPixels: any;
+  innerTileTopLeftPoint: SimplePoint;
+  heightOfSampleInScreenPixels: number;
+  widthOfSampleInScreenPixels: number;
   zoom: number;
-  numberOfSamplesAcross: any;
-  numberOfSamplesDown: any;
-  ymax: any;
-  xmin: any;
+  numberOfSamplesAcross: number;
+  numberOfSamplesDown: number;
+  ymax: number;
+  xmin: number;
 };
 
 export interface DrawTileOptions {
