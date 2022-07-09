@@ -2,9 +2,17 @@
   "name": "georaster-layer-for-leaflet",
   "version": "3.8.0",
   "description": "Display GeoTIFFs and soon other types of raster on your Leaflet Map",
-  "source": "src/georaster-layer-for-leaflet.ts",
-  "main": "dist/georaster-layer-for-leaflet.min.js",
-  "unpkg": "dist/georaster-layer-for-leaflet.min.js",
+  "type": "module",
+  "main": "dist/georaster-layer-for-leaflet.bundle.js",
+  "module": "dist/georaster-layer-for-leaflet.js",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": "./dist/georaster-layer-for-leaflet.js",
+      "require": "./dist/georaster-layer-for-leaflet.bundle.js"
+    }
+  },
+  "browser": "dist/georaster-layer-for-leaflet.min.js",
   "types": "dist/georaster-layer-for-leaflet.d.ts",
   "scripts": {
     "clean": "rimraf dist",
