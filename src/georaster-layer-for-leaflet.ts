@@ -311,10 +311,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
       if (debugLevel >= 2) console.log("starting drawTile with", { tile, coords, context, done });
 
-      let error: Error;
-
-      const { z: zoom } = coords;
-
       // stringified hash of tile coordinates for caching purposes
       const cacheKey = [coords.x, coords.y, coords.z].join(",");
       if (debugLevel >= 2) log({ cacheKey });
@@ -547,6 +543,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
       // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
       setTimeout(async () => {
+        const { z: zoom } = coords;
         try {
           let tileRasters: number[][][] | null = null;
           if (!rasters) {
@@ -629,7 +626,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                       return band[yInRasterPixels][xInRasterPixels];
                     });
                   } else {
-                    done && done(Error("no rasters are available for, so skipping value generation"));
+                    done(new Error("no rasters are available for, so skipping value generation"));
                     return;
                   }
 
@@ -690,16 +687,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           }
 
           tile.style.visibility = "visible"; // set to default
-        } catch (e: any) {
-          error = e;
+          done(undefined, tile);
+        } catch (error: any) {
+          done(error, tile);
         }
-        done && done(error, tile);
       }, 0);
-
-      // return the tile so it can be rendered on screen
-      return tile;
     } catch (error: any) {
-      done && done(error, tile);
+      done(error, tile);
     }
   },
 
