@@ -435,26 +435,24 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       // Reprojecting the bounding box back to the map CRS would expand it
       // (unless the projection is purely scaling and translation),
       // so instead just extend the old map bounding box proportionately.
-      {
-        const oldrb = new GeoExtent(oldExtentOfInnerTileInRasterCRS.bbox);
-        const newrb = new GeoExtent(extentOfInnerTileInRasterCRS.bbox);
-        const oldmb = new GeoExtent(extentOfInnerTileInMapCRS.bbox);
-        if (oldrb.width !== 0 && oldrb.height !== 0) {
-          let n0 = ((newrb.xmin - oldrb.xmin) / oldrb.width) * oldmb.width;
-          let n1 = ((newrb.ymin - oldrb.ymin) / oldrb.height) * oldmb.height;
-          let n2 = ((newrb.xmax - oldrb.xmax) / oldrb.width) * oldmb.width;
-          let n3 = ((newrb.ymax - oldrb.ymax) / oldrb.height) * oldmb.height;
-          if (!overdrawTileAcross) {
-            n0 = Math.max(n0, 0);
-            n2 = Math.min(n2, 0);
-          }
-          if (!overdrawTileDown) {
-            n1 = Math.max(n1, 0);
-            n3 = Math.min(n3, 0);
-          }
-          const newbox = [oldmb.xmin + n0, oldmb.ymin + n1, oldmb.xmax + n2, oldmb.ymax + n3];
-          extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
+      const oldrb = new GeoExtent(oldExtentOfInnerTileInRasterCRS.bbox);
+      const newrb = new GeoExtent(extentOfInnerTileInRasterCRS.bbox);
+      const oldmb = new GeoExtent(extentOfInnerTileInMapCRS.bbox);
+      if (oldrb.width && oldrb.height) {
+        let n0 = ((newrb.xmin - oldrb.xmin) / oldrb.width) * oldmb.width;
+        let n1 = ((newrb.ymin - oldrb.ymin) / oldrb.height) * oldmb.height;
+        let n2 = ((newrb.xmax - oldrb.xmax) / oldrb.width) * oldmb.width;
+        let n3 = ((newrb.ymax - oldrb.ymax) / oldrb.height) * oldmb.height;
+        if (!overdrawTileAcross) {
+          n0 = Math.max(n0, 0);
+          n2 = Math.min(n2, 0);
         }
+        if (!overdrawTileDown) {
+          n1 = Math.max(n1, 0);
+          n3 = Math.min(n3, 0);
+        }
+        const newbox = [oldmb.xmin + n0, oldmb.ymin + n1, oldmb.xmax + n2, oldmb.ymax + n3];
+        extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
       }
 
       // create outline around raster pixels
