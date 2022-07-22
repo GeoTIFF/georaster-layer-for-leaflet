@@ -703,6 +703,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
   // copied from Leaflet with slight modifications,
   // including removing the lines that set the tile size
   _initTile: function (tile: HTMLCanvasElement) {
+    if (!tile) return;
     L.DomUtil.addClass(tile, "leaflet-tile");
 
     tile.onselectstart = L.Util.falseFn;
