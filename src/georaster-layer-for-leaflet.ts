@@ -296,10 +296,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     tile.style.visibility = "hidden";
 
     const context = tile.getContext("2d");
+
     // note that we aren't setting the tile height or width here
     // drawTile dynamically sets the width and padding based on
     // how much the georaster takes up the tile area
-    return this.drawTile({ tile, coords, context, done });
+    this.drawTile({ tile, coords, context, done });
+
+    return tile;
   },
 
   drawTile: function ({ tile, coords, context, done }: DrawTileOptions) {
