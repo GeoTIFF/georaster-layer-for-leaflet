@@ -1,15 +1,21 @@
-const path = require("path");
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+import envisage from "envisage";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const isLite = process.env.LITE === "true";
 
-module.exports = {
+const config = {
   watch: process.env.WEBPACK_WATCH === "true",
   entry: "./src/georaster-layer-for-leaflet.ts",
   mode: "production",
   target: "web",
   output: {
     filename: "georaster-layer-for-leaflet" + (isLite ? ".lite" : "") + ".min.js",
-    path: path.resolve(__dirname, "dist"),
+    path: resolve(__dirname, "./dist/webpack"),
     library: {
       export: "default",
       name: "GeoRasterLayer",
@@ -22,7 +28,20 @@ module.exports = {
       {
         test: /\.(ts|js)x?$/,
         use: {
-          loader: "babel-loader"
+          loader: "babel-loader",
+          options: {
+            presets: [
+              [
+                "@babel/preset-env",
+                {
+                  targets: {
+                    ie: 11
+                  }
+                }
+              ],
+              "@babel/preset-typescript"
+            ]
+          }
         }
       },
       isLite && {
@@ -40,3 +59,7 @@ module.exports = {
     leaflet: { root: "L", commonjs: "leaflet", amd: "leaflet", commonjs2: "leaflet" }
   }
 };
+
+envisage.assign({ target: config, prefix: "WEBPACK" });
+
+export default config;

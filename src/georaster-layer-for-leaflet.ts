@@ -3,6 +3,7 @@ import "regenerator-runtime/runtime";
 import * as L from "leaflet";
 import chroma from "chroma-js";
 import geocanvas from "geocanvas";
+import { rawToRgb } from "pixel-utils";
 import isUTM from "utm-utils/src/isUTM";
 import getProjString from "utm-utils/src/getProjString";
 import type { Coords, DoneCallback, LatLngBounds, LatLngTuple } from "leaflet";
@@ -42,6 +43,13 @@ const isSimpleCRS = (crs: CustomCRS) =>
     crs?.transformation?._b === 0 &&
     crs?.transformation?._c === -1 &&
     crs?.transformation?._d === 0);
+
+if (!L)
+  console.warn(
+    "[georaster-layer-for-leaflet] can't find Leaflet.  If you are loading via <script>, please add the GeoRasterLayer script after the LeafletJS script."
+  );
+
+const zip = (a: any[], b: any[]) => a.map((it, i) => [it, b[i]]);
 
 const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.Class = L.GridLayer.extend({
   options: {
@@ -157,7 +165,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       this.tileHeight = tileSize.y;
       this.tileWidth = tileSize.x;
 
-      if (this.georasters.length > 1 && !options.pixelValuesToColorFn) {
+      if (this.georasters.length >= 4 && !options.pixelValuesToColorFn) {
         throw "you must pass in a pixelValuesToColorFn if you are combining rasters";
       }
 
@@ -172,13 +180,26 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         ranges: new Array(this.numBands)
       };
 
+      // using single-band raster as grayscale
+      // or mapping 2 or 3 rasters to rgb bands
       if (
-        this.georasters.length === 1 &&
-        this.georasters[0].sourceType === "url" &&
-        this.georasters[0].numberOfRasters === 1 &&
+        [1, 2, 3].includes(this.georasters.length) &&
+        this.georasters.every((g: GeoRaster) => g.sourceType === "url") &&
+        this.georasters.every((g: GeoRaster) => g.numberOfRasters === 1) &&
         !options.pixelValuesToColorFn
       ) {
-        this.calcStats = true;
+        try {
+          this.calcStats = true;
+          this._dynamic = true;
+          this.options.pixelValuesToColorFn = (values: number[]) => {
+            const haveDataForAllBands = values.every(value => value !== undefined && value !== this.noDataValue);
+            if (haveDataForAllBands) {
+              return this.rawToRgb(values);
+            }
+          };
+        } catch (error) {
+          console.error("[georaster-layer-for-leaflet]", error);
+        }
       }
 
       // if you haven't specified a pixelValuesToColorFn
@@ -578,6 +599,19 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                 this.currentStats.mins[bandIndex] = min;
                 this.currentStats.maxs[bandIndex] = max;
                 this.currentStats.ranges[bandIndex] = max - min;
+              }
+              if (this._dynamic) {
+                try {
+                  const rawToRgbFn = (rawToRgb as any).default || rawToRgb;
+                  this.rawToRgb = rawToRgbFn({
+                    format: "string",
+                    flip: this.currentStats.mins.length === 1 ? true : false,
+                    ranges: zip(this.currentStats.mins, this.currentStats.maxs),
+                    round: true
+                  });
+                } catch (error) {
+                  console.error(error);
+                }
               }
             }
           }
