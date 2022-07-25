@@ -317,10 +317,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     tile.style.visibility = "hidden";
 
     const context = tile.getContext("2d");
+
     // note that we aren't setting the tile height or width here
     // drawTile dynamically sets the width and padding based on
     // how much the georaster takes up the tile area
-    return this.drawTile({ tile, coords, context, done });
+    this.drawTile({ tile, coords, context, done });
+
+    return tile;
   },
 
   drawTile: function ({ tile, coords, context, done }: DrawTileOptions) {
@@ -328,10 +331,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const { debugLevel = 0 } = this;
 
       if (debugLevel >= 2) console.log("starting drawTile with", { tile, coords, context, done });
-
-      let error: Error;
-
-      const { z: zoom } = coords;
 
       // stringified hash of tile coordinates for caching purposes
       const cacheKey = [coords.x, coords.y, coords.z].join(",");
@@ -457,26 +456,24 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       // Reprojecting the bounding box back to the map CRS would expand it
       // (unless the projection is purely scaling and translation),
       // so instead just extend the old map bounding box proportionately.
-      {
-        const oldrb = new GeoExtent(oldExtentOfInnerTileInRasterCRS.bbox);
-        const newrb = new GeoExtent(extentOfInnerTileInRasterCRS.bbox);
-        const oldmb = new GeoExtent(extentOfInnerTileInMapCRS.bbox);
-        if (oldrb.width !== 0 && oldrb.height !== 0) {
-          let n0 = ((newrb.xmin - oldrb.xmin) / oldrb.width) * oldmb.width;
-          let n1 = ((newrb.ymin - oldrb.ymin) / oldrb.height) * oldmb.height;
-          let n2 = ((newrb.xmax - oldrb.xmax) / oldrb.width) * oldmb.width;
-          let n3 = ((newrb.ymax - oldrb.ymax) / oldrb.height) * oldmb.height;
-          if (!overdrawTileAcross) {
-            n0 = Math.max(n0, 0);
-            n2 = Math.min(n2, 0);
-          }
-          if (!overdrawTileDown) {
-            n1 = Math.max(n1, 0);
-            n3 = Math.min(n3, 0);
-          }
-          const newbox = [oldmb.xmin + n0, oldmb.ymin + n1, oldmb.xmax + n2, oldmb.ymax + n3];
-          extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
+      const oldrb = new GeoExtent(oldExtentOfInnerTileInRasterCRS.bbox);
+      const newrb = new GeoExtent(extentOfInnerTileInRasterCRS.bbox);
+      const oldmb = new GeoExtent(extentOfInnerTileInMapCRS.bbox);
+      if (oldrb.width && oldrb.height) {
+        let n0 = ((newrb.xmin - oldrb.xmin) / oldrb.width) * oldmb.width;
+        let n1 = ((newrb.ymin - oldrb.ymin) / oldrb.height) * oldmb.height;
+        let n2 = ((newrb.xmax - oldrb.xmax) / oldrb.width) * oldmb.width;
+        let n3 = ((newrb.ymax - oldrb.ymax) / oldrb.height) * oldmb.height;
+        if (!overdrawTileAcross) {
+          n0 = Math.max(n0, 0);
+          n2 = Math.min(n2, 0);
         }
+        if (!overdrawTileDown) {
+          n1 = Math.max(n1, 0);
+          n3 = Math.min(n3, 0);
+        }
+        const newbox = [oldmb.xmin + n0, oldmb.ymin + n1, oldmb.xmax + n2, oldmb.ymax + n3];
+        extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
       }
 
       // create outline around raster pixels
@@ -565,6 +562,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
       // render asynchronously so tiles show up as they finish instead of all at once (which blocks the UI)
       setTimeout(async () => {
+        const { z: zoom } = coords;
         try {
           let tileRasters: number[][][] | null = null;
           if (!rasters) {
@@ -660,7 +658,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                       return band[yInRasterPixels][xInRasterPixels];
                     });
                   } else {
-                    done && done(Error("no rasters are available for, so skipping value generation"));
+                    done(new Error("no rasters are available for, so skipping value generation"));
                     return;
                   }
 
@@ -721,22 +719,20 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           }
 
           tile.style.visibility = "visible"; // set to default
-        } catch (e: any) {
-          error = e;
+          done(undefined, tile);
+        } catch (error: any) {
+          done(error, tile);
         }
-        done && done(error, tile);
       }, 0);
-
-      // return the tile so it can be rendered on screen
-      return tile;
     } catch (error: any) {
-      done && done(error, tile);
+      done(error, tile);
     }
   },
 
   // copied from Leaflet with slight modifications,
   // including removing the lines that set the tile size
   _initTile: function (tile: HTMLCanvasElement) {
+    if (!tile) return;
     L.DomUtil.addClass(tile, "leaflet-tile");
 
     tile.onselectstart = L.Util.falseFn;
