@@ -74,7 +74,7 @@
     "pixel-utils": "^0.7.0",
     "proj4-fully-loaded": "^0.1.0",
     "regenerator-runtime": "^0.13.9",
-    "reproject-bbox": "^0.4.0",
+    "reproject-bbox": "^0.4.1",
     "snap-bbox": "^0.2.0",
     "utm-utils": "^0.1.0"
   },
