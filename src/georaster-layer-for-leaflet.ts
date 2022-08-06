@@ -295,7 +295,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       // !note: The types need confirmation - SFR 2021-01-20
       return Promise.all(
         this.georasters.map((georaster: GeoRaster) =>
-          georaster.getValues({ ...getValuesOptions, resampleMethod: this.resampleMethod || "bilinear" })
+          georaster.getValues({ ...getValuesOptions, resampleMethod: this.resampleMethod || "nearest" })
         )
       ).then(valuesByGeoRaster =>
         valuesByGeoRaster.reduce((result: number[][][], values) => {
@@ -317,10 +317,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     tile.style.visibility = "hidden";
 
     const context = tile.getContext("2d");
+
     // note that we aren't setting the tile height or width here
     // drawTile dynamically sets the width and padding based on
     // how much the georaster takes up the tile area
-    return this.drawTile({ tile, coords, context, done });
+    this.drawTile({ tile, coords, context, done });
+
+    return tile;
   },
 
   drawTile: function ({ tile, coords, context, done }: DrawTileOptions) {
@@ -591,8 +594,12 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                   for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
                     const value = row[columnIndex];
                     if (value !== noDataValue) {
-                      if (min === undefined || value < min) min = value;
-                      if (max === undefined || value > max) max = value;
+                      if (min === undefined || value < min) {
+                        min = value;
+                      }
+                      if (max === undefined || value > max) {
+                        max = value;
+                      }
                     }
                   }
                 }
@@ -722,6 +729,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
           tile.style.visibility = "visible"; // set to default
         } catch (e: any) {
+          console.error(e);
           error = e;
         }
         done && done(error, tile);
@@ -730,6 +738,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       // return the tile so it can be rendered on screen
       return tile;
     } catch (error: any) {
+      console.error(error);
       done && done(error, tile);
     }
   },
