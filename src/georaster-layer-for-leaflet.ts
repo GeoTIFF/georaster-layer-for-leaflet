@@ -1,11 +1,11 @@
 /* global proj4 */
-import "regenerator-runtime/runtime";
+import "regenerator-runtime/runtime.js";
 import * as L from "leaflet";
 import chroma from "chroma-js";
 import geocanvas from "geocanvas";
 import { rawToRgb } from "pixel-utils";
-import isUTM from "utm-utils/src/isUTM";
-import getProjString from "utm-utils/src/getProjString";
+import isUTM from "utm-utils/src/isUTM.js";
+import getProjString from "utm-utils/src/getProjString.js";
 import type { Coords, DoneCallback, LatLngBounds, LatLngTuple } from "leaflet";
 import proj4FullyLoaded from "proj4-fully-loaded";
 import { GeoExtent } from "geo-extent";
