@@ -27,7 +27,7 @@ new GeoRasterLayer({
 ```
 
 # Reducing your Build Size
-The default builds of GeoRasterLayer include support for nearly all projections.  Of course, this increases the total build size of the library by a lot, specifically from about 54kb to 311kb.  If you don't want this built-in support, you can use the lite version of the library, which is found at `./dist/georaster-layer-for-leaflet.lite.min.js`.  This means you'll want to do `const GeoRasterLayer = require('georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.lite.min.js')` or `import GeoRasterLayer from 'georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.lite.min.js` when loading the library.  If you are building GeoRasterLayer from source and using webpack, consider using [null-loader](https://webpack.js.org/loaders/null-loader/), which is what we use in our webpack.config.js.
+The default builds of GeoRasterLayer include support for nearly all projections.  Of course, this increases the total build size of the library by a lot, specifically from about 54kb to 311kb.  If you don't want this built-in support, you can use the lite version of the library, which is found at `./dist/georaster-layer-for-leaflet.lite.min.js`.  This means you'll want to do `const GeoRasterLayer = require('georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.lite.min.js')` or `import GeoRasterLayer from 'georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.lite.min.js` when loading the library.
 
 # Masking
 You can hide all the pixels either inside or outside a given mask geometry.  You can provide a JSON object as a mask geometry
