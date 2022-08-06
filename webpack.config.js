@@ -43,17 +43,19 @@ const config = {
             ]
           }
         }
-      },
-      isLite && {
-        test: /.*proj4.*/,
-        use: {
-          loader: "null-loader"
-        }
       }
-    ].filter(Boolean)
+    ]
   },
   resolve: {
-    modules: ["node_modules"]
+    modules: ["node_modules"],
+    alias: (() => {
+      if (isLite) {
+        return {
+          proj4: false,
+          "proj4-fully-loaded": false
+        };
+      }
+    })()
   },
   externals: {
     leaflet: { root: "L", commonjs: "leaflet", amd: "leaflet", commonjs2: "leaflet" }
