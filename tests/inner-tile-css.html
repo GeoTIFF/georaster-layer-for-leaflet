@@ -35,6 +35,7 @@
       parseGeoraster(rasterUrl).then(georaster => {
         const lyr = new GeoRasterLayer({
           attribution: "Planet",
+          debugLevel: 4,
           georaster,
           resolution: 64
         });

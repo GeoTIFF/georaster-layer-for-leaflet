@@ -59,7 +59,7 @@
           parseGeoraster(arrayBuffer).then(async function (georaster) {
             console.log("georaster:", georaster);
             window.layer = new GeoRasterLayer({
-              debugLevel: 10,
+              debugLevel: 0,
               georaster: georaster,
               resolution: 512,
               pixelValuesToColorFn: function (values) {
