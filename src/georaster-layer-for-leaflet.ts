@@ -607,18 +607,18 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                 this.currentStats.maxs[bandIndex] = max;
                 this.currentStats.ranges[bandIndex] = max - min;
               }
-              if (this._dynamic) {
-                try {
-                  const rawToRgbFn = (rawToRgb as any).default || rawToRgb;
-                  this.rawToRgb = rawToRgbFn({
-                    format: "string",
-                    flip: this.currentStats.mins.length === 1 ? true : false,
-                    ranges: zip(this.currentStats.mins, this.currentStats.maxs),
-                    round: true
-                  });
-                } catch (error) {
-                  console.error(error);
-                }
+            }
+            if (this._dynamic) {
+              try {
+                const rawToRgbFn = (rawToRgb as any).default || rawToRgb;
+                this.rawToRgb = rawToRgbFn({
+                  format: "string",
+                  flip: this.currentStats.mins.length === 1 ? true : false,
+                  ranges: zip(this.currentStats.mins, this.currentStats.maxs),
+                  round: true
+                });
+              } catch (error) {
+                console.error(error);
               }
             }
           }
