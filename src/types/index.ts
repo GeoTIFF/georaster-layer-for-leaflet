@@ -18,7 +18,7 @@ export type SimplePoint = {
 export type Mask = Feature | FeatureCollection | Polygon | MultiPolygon;
 
 interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
-  resolution?: number;
+  resolution?: number | { [key: number]: number };
   debugLevel?: DebugLevel;
   pixelValuesToColorFn?: PixelValuesToColorFn;
   bounds?: LatLngBounds;
