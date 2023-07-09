@@ -8,14 +8,14 @@ export type PixelValuesToColorFn = (values: number[]) => string;
 
 export type DebugLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
-export type ResampleMethod = "bilinear" | "near";
+export type ResampleMethod = "bilinear" | "nearest";
 
 export type SimplePoint = {
   x: number;
   y: number;
 };
 
-export type Mask = Feature | FeatureCollection | Polygon | MultiPolygon;
+export type Mask = string | Feature | FeatureCollection | Polygon | MultiPolygon;
 
 interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number;
@@ -77,7 +77,7 @@ export type GetValuesOptions = {
   right?: number;
   top?: number;
   width: number;
-  resampleMethod?: string
+  resampleMethod?: ResampleMethod
 };
 
 export type GeoRasterValues = number[][][];

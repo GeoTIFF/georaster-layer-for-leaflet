@@ -51,7 +51,7 @@ new GeoRasterLayer({ georaster }).addTo(map);
 
 ## The GeoRasterLayer Class
 
-A custom class for rendering GeoTIFF's (including COG's) on a leaflet map. The layer extends L.GridLayer, see the [docs](https://leafletjs.com/reference-1.7.1.html#gridlayer) for inherited options and methods.
+A custom class for rendering GeoTIFF's (including COG's) on a leaflet map. The layer extends L.GridLayer, see the [docs](https://leafletjs.com/reference.html#gridlayer) for inherited options and methods.
 
 ### Usage Example
 
@@ -61,6 +61,7 @@ Source Code: <https://github.com/GeoTIFF/georaster-layer-for-leaflet-example/blo
 var parse_georaster = require("georaster");
 
 var GeoRasterLayer = require("georaster-layer-for-leaflet");
+// or: import GeoRasterLayer from "georaster-layer-for-leaflet";
 
 // initalize leaflet map
 var map = L.map('map').setView([0, 0], 5);
@@ -87,7 +88,7 @@ fetch(url_to_geotiff_file)
           Optionally set the pixelValuesToColorFn function option to customize
           how values for a pixel are translated to a color.
 
-          http://leafletjs.com/reference-1.2.0.html#gridlayer
+          https://leafletjs.com/reference.html#gridlayer
       */
       var layer = new GeoRasterLayer({
           georaster: georaster,
@@ -103,14 +104,46 @@ fetch(url_to_geotiff_file)
 });
 ```
 
+### Options for GeoRasterLayer
+
+> The layer extends L.GridLayer, see the [docs](https://leafletjs.com/reference.html#gridlayer) for inherited options and methods.
+
+| Option               | Type                                                              | Default | Description                                                      |
+|----------------------|-------------------------------------------------------------------|---------|------------------------------------------------------------------|
+| georaster            | GeoRaster                                                         |         | Use `georaster` from georaster-library. `georaster` or `georasters` is required.                           |
+| georasters           | GeoRaster[]                                                       |         | Use different `georasters` from georaster-library. `georaster` or `georasters` is required.                                                                |
+| resolution           | number                                                            | 32      | The resolution parameter is how many samples to take across and down from a dataset for each map tile. Typical tiles are 256 x 256 pixels (higher resolution are 512 x 512) which would be a optimal resolution of 256. It's not recommended to set the resolution higher then 512.                                                                  |
+| debugLevel           | number                                                            | 0       | Available debug levels: 0 - 5                                                            |
+| pixelValuesToColorFn | (values: number[]) => string                                      | null    | Customize how values for a pixel are translated to a color.                                                                 |
+| bounds               | LatLngBounds                                                      | null    |  https://leafletjs.com/reference.html#latlngbounds                                                                |
+| proj4                | Function                                                          |         | https://github.com/proj4js/proj4js                                                                 |
+| resampleMethod       | string                                                            | nearest        | bilinear \| nearest                                             |
+| mask                 | string \| Feature \| FeatureCollection \| Polygon \| MultiPolygon | null        | You can hide all the pixels either inside or outside a given mask geometry. You can provide a JSON object as a mask geometry or a URL to a GeoJSON.                                                                 |
+| mask_srs             | string \| number                                                  | "EPSG:4326"        | Default mask srs is the EPSG:4326 projection used by GeoJSON     |
+| mask_strategy        | string                                                            | outside | inside \| outside                                            |
+| updateWhenIdle       | boolean                                                           | true    | https://leafletjs.com/reference.html#gridlayer-updatewhenidle    |
+| updateWhenZooming    | boolean                                                           | false   | https://leafletjs.com/reference.html#gridlayer-updatewhenzooming |
+| keepBuffer           | number                                                            | 25      | https://leafletjs.com/reference.html#gridlayer-keepbuffer        |
+
+
+
 <!-- ## Options -->
 <!-- todo: add a table of options for GeoRasterLayer -->
 
 ### Methods
 
-| Method                                      | Returns | Description                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| updateColors(pixelValuesToColorFn, options) | this    | Causes the tiles to redraw without clearing them first. It uses the updated `pixelValuesToColorFn` function. You can set a debugLevel specific to this function by passing in an options object with a debugLevel property.  For example, you can turn on the console debugs for this method by setting `debugLevel = 1` in the options (even if you created the layer with `debugLevel = 0`). |
+| Method                                                           | Returns             | Description                                                                                                                                                                                                                                                                                                                                                                                    |
+|------------------------------------------------------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| getBounds()                                                      | LatLngBounds        | Returns the bounds of the layer                                                                                                                                                                                                                                                                                                                                                                |
+| getMap()                                                         | Map                 | Returns the map which contains the layer                                                                                                                                                                                                                                                                                                                                                       |
+| getMapCRS()                                                      | CRS                 | Returns map CRS if available else EPSG3857                                                                                                                                                                                                                                                                                                                                                     |
+| getColor(values: number[])                                       | string \| undefined | Returns the colors of the values                                                                                                                                                                                                                                                                                                                                                               |
+| updateColors(pixelValuesToColorFn, options = { debugLevel: -1 }) | this                | Causes the tiles to redraw without clearing them first. It uses the updated `pixelValuesToColorFn` function. You can set a debugLevel specific to this function by passing in an options object with a debugLevel property.  For example, you can turn on the console debugs for this method by setting `debugLevel = 1` in the options (even if you created the layer with `debugLevel = 0`). |
+| getTiles()                                                       | Tile[]              | Returns tiles as array                                                                                                                                                                                                                                                                                                                                                                         |
+| getActiveTiles()                                                 | Tile[]              | Returns active / visible tiles as array                                                                                                                                                                                                                                                                                                                                                        |
+| isSupportedProjection()                                          | boolean             | Returns if the projection is supported                                                                                                                                                                                                                                                                                                                                                         |
+| getProjectionString(projection: number)                          | string              | Returns the projection string for example "EPSG:3857"                                                                                                                                                                                                                                                                                                                                          |
+| getProjector()                                                   | Projection          | Returns the current projection                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## Advanced Capabilities
 
