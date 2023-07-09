@@ -57,8 +57,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     updateWhenZooming: false,
     keepBuffer: 25,
     resolution: 2 ** 5,
-    debugLevel: 0
+    debugLevel: 0,
+    caching: true
   },
+
+  cache: {},
 
   initialize: function (options: GeoRasterLayerOptions) {
     try {
@@ -321,7 +324,23 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     // note that we aren't setting the tile height or width here
     // drawTile dynamically sets the width and padding based on
     // how much the georaster takes up the tile area
-    this.drawTile({ tile, coords, context, done });
+    const coordsKey = this._tileCoordsToKey(coords);
+    const key = `${coordsKey}:${this.options.resolution}`;
+    const doneCb = (error?: Error, tile?: HTMLElement): void => {
+      done(error, tile);
+
+      // caching the rendered tile, to skip the calculation for the next time
+      if (!error && this.options.caching) {
+        this.cache[key] = tile;
+      }
+    };
+
+    if (this.options.caching && this.cache[key]) {
+      done(undefined, this.cache[key]);
+      return this.cache[key];
+    } else {
+      this.drawTile({ tile, coords, context, done: doneCb });
+    }
 
     return tile;
   },
@@ -413,11 +432,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         // pad xmax and ymin of container to tolerate ceil() and floor() in snap()
         container: inSimpleCRS
           ? [
-            extentOfLayer.xmin,
-            extentOfLayer.ymin - 0.25 * pixelHeight,
-            extentOfLayer.xmax + 0.25 * pixelWidth,
-            extentOfLayer.ymax
-          ]
+              extentOfLayer.xmin,
+              extentOfLayer.ymin - 0.25 * pixelHeight,
+              extentOfLayer.xmax + 0.25 * pixelWidth,
+              extentOfLayer.ymax
+            ]
           : [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
         debug: debugLevel >= 2,
         origin: inSimpleCRS ? [extentOfLayer.xmin, extentOfLayer.ymax] : [xmin, ymax],
@@ -1040,6 +1059,10 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
   same(array: GeoRaster[], key: GeoRasterKeys) {
     return new Set(array.map(item => item[key])).size === 1;
+  },
+
+  clearCache() {
+    this.cache = {};
   }
 });
 
