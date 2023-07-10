@@ -413,11 +413,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         // pad xmax and ymin of container to tolerate ceil() and floor() in snap()
         container: inSimpleCRS
           ? [
-            extentOfLayer.xmin,
-            extentOfLayer.ymin - 0.25 * pixelHeight,
-            extentOfLayer.xmax + 0.25 * pixelWidth,
-            extentOfLayer.ymax
-          ]
+              extentOfLayer.xmin,
+              extentOfLayer.ymin - 0.25 * pixelHeight,
+              extentOfLayer.xmax + 0.25 * pixelWidth,
+              extentOfLayer.ymax
+            ]
           : [xmin, ymin - 0.25 * pixelHeight, xmax + 0.25 * pixelWidth, ymax],
         debug: debugLevel >= 2,
         origin: inSimpleCRS ? [extentOfLayer.xmin, extentOfLayer.ymax] : [xmin, ymax],
@@ -441,8 +441,28 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         const recropTileProj = inSimpleCRS ? recropTileOrig : recropTileOrig.reproj(code);
         const recropTile = recropTileProj.crop(extentOfTileInMapCRS);
         if (recropTile !== null) {
-          maxSamplesAcross = Math.ceil(resolution * (recropTile.width / extentOfTileInMapCRS.width));
-          maxSamplesDown = Math.ceil(resolution * (recropTile.height / extentOfTileInMapCRS.height));
+          let resolutionValue;
+
+          if (typeof resolution === "object") {
+            const zoomLevels = Object.keys(resolution);
+            const mapZoom = this.getMap().getZoom();
+
+            for (const key in zoomLevels) {
+              if (Object.prototype.hasOwnProperty.call(zoomLevels, key)) {
+                const zoomLvl = zoomLevels[key];
+                if (zoomLvl <= mapZoom) {
+                  resolutionValue = resolution[zoomLvl];
+                } else {
+                  break;
+                }
+              }
+            }
+          } else {
+            resolutionValue = resolution;
+          }
+
+          maxSamplesAcross = Math.ceil(resolutionValue * (recropTile.width / extentOfTileInMapCRS.width));
+          maxSamplesDown = Math.ceil(resolutionValue * (recropTile.height / extentOfTileInMapCRS.height));
         }
       }
 
