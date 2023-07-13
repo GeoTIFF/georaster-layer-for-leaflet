@@ -59,6 +59,7 @@ export interface DrawTileOptions {
   coords: Coords;
   context: CanvasRenderingContext2D;
   done: DoneCallback;
+  resolution: number;
 }
 
 // note: Tile is taken from leaflets `InternalTiles` type and should not be modified.  - SFR 2021-01-19
