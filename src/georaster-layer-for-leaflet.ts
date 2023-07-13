@@ -445,12 +445,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
           if (typeof resolution === "object") {
             const zoomLevels = Object.keys(resolution);
-            const mapZoom = this.getMap().getZoom();
 
             for (const key in zoomLevels) {
               if (Object.prototype.hasOwnProperty.call(zoomLevels, key)) {
                 const zoomLvl = zoomLevels[key];
-                if (zoomLvl <= mapZoom) {
+                if (zoomLvl <= zoom) {
                   resolutionValue = resolution[zoomLvl];
                 } else {
                   break;
