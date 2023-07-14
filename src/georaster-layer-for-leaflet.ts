@@ -57,8 +57,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     updateWhenZooming: false,
     keepBuffer: 25,
     resolution: 2 ** 5,
-    debugLevel: 0
+    debugLevel: 0,
+    caching: true
   },
+
+  cache: {},
 
   initialize: function (options: GeoRasterLayerOptions) {
     try {
@@ -224,6 +227,16 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     }
   },
 
+  onAdd: function (map) {
+    if (!this.options.maxZoom) {
+      // maxZoom is needed to display the tiles in the correct order over the zIndex between the zoom levels
+      // https://github.com/Leaflet/Leaflet/blob/2592967aa6bd392db0db9e58dab840054e2aa291/src/layer/tile/GridLayer.js#L375C21-L375C21
+      this.options.maxZoom = map.getMaxZoom();
+    }
+
+    L.GridLayer.prototype.onAdd.call(this, map);
+  },
+
   getRasters: function (options: GetRasterOptions) {
     const {
       innerTileTopLeftPoint,
@@ -321,12 +334,30 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     // note that we aren't setting the tile height or width here
     // drawTile dynamically sets the width and padding based on
     // how much the georaster takes up the tile area
-    this.drawTile({ tile, coords, context, done });
+    const coordsKey = this._tileCoordsToKey(coords);
+
+    const resolution = this._getResolution(coords.z);
+    const key = `${coordsKey}:${resolution}`;
+    const doneCb = (error?: Error, tile?: HTMLElement): void => {
+      done(error, tile);
+
+      // caching the rendered tile, to skip the calculation for the next time
+      if (!error && this.options.caching) {
+        this.cache[key] = tile;
+      }
+    };
+
+    if (this.options.caching && this.cache[key]) {
+      done(undefined, this.cache[key]);
+      return this.cache[key];
+    } else {
+      this.drawTile({ tile, coords, context, done: doneCb, resolution });
+    }
 
     return tile;
   },
 
-  drawTile: function ({ tile, coords, context, done }: DrawTileOptions) {
+  drawTile: function ({ tile, coords, context, done, resolution }: DrawTileOptions) {
     try {
       const { debugLevel = 0 } = this;
 
@@ -432,7 +463,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const snappedSamplesDown = Math.abs(gridbox[3] - gridbox[1]);
       const rasterPixelsAcross = Math.ceil(oldExtentOfInnerTileInRasterCRS.width / pixelWidth);
       const rasterPixelsDown = Math.ceil(oldExtentOfInnerTileInRasterCRS.height / pixelHeight);
-      const { resolution } = this.options;
       const layerCropExtent = inSimpleCRS ? extentOfLayer : this.extent;
       const recropTileOrig = oldExtentOfInnerTileInRasterCRS.crop(layerCropExtent); // may be null
       let maxSamplesAcross = 1;
@@ -441,28 +471,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         const recropTileProj = inSimpleCRS ? recropTileOrig : recropTileOrig.reproj(code);
         const recropTile = recropTileProj.crop(extentOfTileInMapCRS);
         if (recropTile !== null) {
-          let resolutionValue;
-
-          if (typeof resolution === "object") {
-            const zoomLevels = Object.keys(resolution);
-            const mapZoom = this.getMap().getZoom();
-
-            for (const key in zoomLevels) {
-              if (Object.prototype.hasOwnProperty.call(zoomLevels, key)) {
-                const zoomLvl = zoomLevels[key];
-                if (zoomLvl <= mapZoom) {
-                  resolutionValue = resolution[zoomLvl];
-                } else {
-                  break;
-                }
-              }
-            }
-          } else {
-            resolutionValue = resolution;
-          }
-
-          maxSamplesAcross = Math.ceil(resolutionValue * (recropTile.width / extentOfTileInMapCRS.width));
-          maxSamplesDown = Math.ceil(resolutionValue * (recropTile.height / extentOfTileInMapCRS.height));
+          maxSamplesAcross = Math.ceil(resolution * (recropTile.width / extentOfTileInMapCRS.width));
+          maxSamplesDown = Math.ceil(resolution * (recropTile.height / extentOfTileInMapCRS.height));
         }
       }
 
@@ -1060,6 +1070,34 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
   same(array: GeoRaster[], key: GeoRasterKeys) {
     return new Set(array.map(item => item[key])).size === 1;
+  },
+
+  clearCache() {
+    this.cache = {};
+  },
+
+  _getResolution(zoom: number) {
+    const { resolution } = this.options;
+
+    let resolutionValue;
+    if (typeof resolution === "object") {
+      const zoomLevels = Object.keys(resolution);
+
+      for (const key in zoomLevels) {
+        if (Object.prototype.hasOwnProperty.call(zoomLevels, key)) {
+          const zoomLvl = parseInt(zoomLevels[key]);
+          if (zoomLvl <= zoom) {
+            resolutionValue = resolution[zoomLvl];
+          } else {
+            break;
+          }
+        }
+      }
+    } else {
+      resolutionValue = resolution;
+    }
+
+    return resolutionValue;
   }
 });
 
