@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0./dist/leaflet.css" />
+    <style>
+      #map {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0./dist/leaflet.js"></script>
+    <script src="https://unpkg.com/proj4"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/chroma-js"></script>
+    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script>
+      var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/nt_20201024_f18_nrt_s.tif";
+
+      fetch(url_to_geotiff_file)
+        .then(function (response) {
+          return response.arrayBuffer();
+        })
+        .then(function (arrayBuffer) {
+          parseGeoraster(arrayBuffer).then(function (georaster) {
+            // initalize leaflet map
+            var map = L.map("map", {
+              // use simple CRS
+              // read more here: https://leafletjs.com/examples/crs-simple/crs-simple.html
+              crs: L.CRS.Simple
+            });
+
+            var scale = chroma.scale(["darkblue", "lightblue"]).domain([0, 100]);
+
+            var layer = new GeoRasterLayer({
+              georaster: georaster,
+              resolution: 512,
+              pixelValuesToColorFn: function (values) {
+                const value = values[0];
+                if (value < 0) return "rgb(25, 25, 25)";
+                return scale(value).hex();
+              }
+            });
+            layer.addTo(map);
+            map.fitBounds(layer.getBounds());
+          });
+        });
+    </script>
+  </body>
+</html>

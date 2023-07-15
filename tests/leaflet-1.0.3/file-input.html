@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <style>
+      #map, #overlay {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+      #map {
+        z-index: 8;
+      }
+      #overlay {
+        background: rgba(0, 120, 0, 1);
+        padding: 30px;
+        z-index: 9;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="overlay">
+      <h1>Load a GeoTIFF File</h1>
+      <input type="file" id="geotiff-file">
+    </div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/proj4"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
+    <script>
+      // initalize leaflet map
+      var map = L.map('map').setView([0, 0], 5);
+
+      // add OpenStreetMap basemap
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      document.getElementById("geotiff-file").addEventListener("change", function(event) {
+        var file = event.target.files[0];
+        console.log("file:", file);
+
+        var reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onloadend = function() {
+          var arrayBuffer = reader.result;
+          parseGeoraster(arrayBuffer).then(georaster => {
+
+            console.log("georaster:", georaster);
+            /*
+                GeoRasterLayer is an extension of GridLayer,
+                which means can use GridLayer options like opacity.
+
+                Just make sure to include the georaster option!
+
+                http://leafletjs.com/reference-1.2.0.html#gridlayer
+            */
+            var layer = new GeoRasterLayer({
+                georaster,
+                opacity: 0.7,
+                resolution: 256
+            });
+            console.log("layer:", layer);
+            layer.addTo(map);
+
+            map.fitBounds(layer.getBounds());
+            document.getElementById("overlay").style.display = "none";
+          });
+        };
+      });
+    </script>
+  </body>
+</html>
