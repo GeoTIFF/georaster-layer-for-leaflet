@@ -30,6 +30,7 @@ interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   updateWhenIdle?: boolean; // inherited from LeafletJS
   updateWhenZooming?: boolean; // inherited from LeafletJS
   keepBuffer?: number; // inherited from LeafletJS
+  caching?: boolean;
 }
 
 // Ensures at least one of the georaster[s] options is defined while being ok the other is not
@@ -58,6 +59,7 @@ export interface DrawTileOptions {
   coords: Coords;
   context: CanvasRenderingContext2D;
   done: DoneCallback;
+  resolution: number;
 }
 
 // note: Tile is taken from leaflets `InternalTiles` type and should not be modified.  - SFR 2021-01-19
