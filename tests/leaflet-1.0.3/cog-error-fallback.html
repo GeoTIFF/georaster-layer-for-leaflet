@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0./dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,7 +16,7 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0./dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
@@ -32,32 +32,39 @@
       const rasterUrl =
         "https://storage.googleapis.com/pdd-stac/disasters/hurricane-harvey/0831/20170831_172754_101c_3b_Visual.tif";
       parseGeoraster(rasterUrl).then(function (georaster) {
-        const { noDataValue } = georaster;
-        var pixelValuesToColorFn = function (values) {
-          if (
-            values.some(function (value) {
-              return value === noDataValue;
-            })
-          ) {
-            return "rgba(0,0,0,0.0)";
-          } else {
-            const [r, g, b] = values;
-            return `rgba(${r},${g},${b},.85)`;
-          }
+        georaster.getValues = () => {
+          throw new Error("failure to fetch values");
         };
+
+        const { noDataValue } = georaster;
         const resolution = 64;
-        var layer = new GeoRasterLayer({
-          debugLevel: 4,
+        const lyr = new GeoRasterLayer({
           attribution: "Planet",
-          georaster: georaster,
-          pixelValuesToColorFn: pixelValuesToColorFn,
-          resolution: resolution
+          georaster
         });
-        layer.addTo(map);
+        lyr.addTo(map);
 
         setTimeout(() => {
-          map.flyToBounds(layer.getBounds());
+          map.flyToBounds(lyr.getBounds());
         }, 1000);
+
+        lyr.on("tileerror", data => {
+          const { coords, tile } = data;
+          const height = 256;
+          const width = 256;
+
+          tile.style.visibility = "visible";
+          tile.style.padding = null;
+          tile.height = height;
+          tile.style.height = height + "px";
+          tile.width = width;
+          tile.style.width = width + "px";
+
+          const { x, y, z } = coords;
+          const img = new Image(256, 256);
+          img.onload = () => data.tile.getContext("2d").drawImage(img, 0, 0);
+          img.src = `https://tiles.rdnt.io/tiles/${z}/${x}/${y}?url=${rasterUrl}`;
+        });
       });
     </script>
   </body>

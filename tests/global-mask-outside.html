@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -17,7 +17,7 @@
     <div id="map"></div>
     <script src="https://unpkg.com/flug"></script>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
     <script>
@@ -30,7 +30,6 @@
       }).addTo(map);
 
       var url_to_geotiff_file = "./spam2010V1r1_global_H_WHEA_A.tif";
-
 
       function runTest() {
         setTimeout(() => {

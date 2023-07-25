@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0./dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -31,7 +31,7 @@
     </div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/chroma-js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0./dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
@@ -82,7 +82,7 @@
           },
           resolution: 64,
           opacity: 0.5,
-          debugLevel: 0
+          debugLevel: 1
         });
         layer.addTo(map);
         map.fitBounds(layer.getBounds());
@@ -94,12 +94,9 @@
       const updateInput = event => {
         L.DomEvent.stop(event);
         const { value: min } = event.target;
-        layer.updateColors(
-          function (values) {
-            return getColorFromValues(values, min, 1);
-          },
-          { debugLevel: 1 }
-        );
+        layer.updateColors(function (values) {
+          return getColorFromValues(values, min, 1);
+        });
       };
 
       input.addEventListener("change", updateInput);

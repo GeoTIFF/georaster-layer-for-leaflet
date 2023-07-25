@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,7 +16,7 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
@@ -30,10 +30,11 @@
       }).addTo(map);
 
       const rasterUrl =
-      "https://storage.googleapis.com/pdd-stac/disasters/hurricane-harvey/0831/20170831_172754_101c_3b_Visual.tif";
+        "https://storage.googleapis.com/pdd-stac/disasters/hurricane-harvey/0831/20170831_172754_101c_3b_Visual.tif";
       parseGeoraster(rasterUrl).then(function (georaster) {
-
-        georaster.getValues = () => { throw new Error("failure to fetch values"); }
+        georaster.getValues = () => {
+          throw new Error("failure to fetch values");
+        };
 
         const { noDataValue } = georaster;
         const resolution = 64;
@@ -45,7 +46,7 @@
 
         setTimeout(() => {
           map.flyToBounds(lyr.getBounds());
-        }, 1000)
+        }, 1000);
 
         lyr.on("tileerror", data => {
           const { coords, tile } = data;
@@ -61,7 +62,7 @@
 
           const { x, y, z } = coords;
           const img = new Image(256, 256);
-          img.onload = () => data.tile.getContext('2d').drawImage(img, 0, 0);
+          img.onload = () => data.tile.getContext("2d").drawImage(img, 0, 0);
           img.src = `https://tiles.rdnt.io/tiles/${z}/${x}/${y}?url=${rasterUrl}`;
         });
       });

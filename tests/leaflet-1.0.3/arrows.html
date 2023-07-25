@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0./dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,7 +16,7 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0./dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
     <script>
@@ -28,8 +28,7 @@
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      var url_to_geotiff_file =
-        "https://raw.githubusercontent.com/GeoTIFF/georaster-layer-for-leaflet-example/master/example_4326.tif";
+      var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/wind_direction.tif";
 
       fetch(url_to_geotiff_file)
         .then(function (response) {
@@ -37,14 +36,27 @@
         })
         .then(function (arrayBuffer) {
           parseGeoraster(arrayBuffer).then(function (georaster) {
-            console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
-              debugLevel: 4,
               georaster: georaster,
-              resolution: 512
+              customDrawFunction: function ({ context, x, y, width, height, values }) {
+                // from https://github.com/stuartmatthews/leaflet-geotiff/blob/master/leaflet-geotiff-vector-arrows.js
+                var value = values[0];
+                var arrowSize = width / 2.5;
+                context.save();
+                context.translate(x, y);
+                context.rotate(((90 + value) * Math.PI) / 180);
+                context.beginPath();
+                context.moveTo(-arrowSize / 2, 0);
+                context.lineTo(+arrowSize / 2, 0);
+                context.moveTo(arrowSize * 0.25, -arrowSize * 0.25);
+                context.lineTo(+arrowSize / 2, 0);
+                context.lineTo(arrowSize * 0.25, arrowSize * 0.25);
+                context.stroke();
+                context.restore();
+              }
             });
-            map.fitBounds(layer.getBounds());
             layer.addTo(map);
+            map.fitBounds(layer.getBounds());
           });
         });
     </script>

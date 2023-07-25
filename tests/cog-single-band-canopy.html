@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,7 +16,7 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
     <script>
@@ -28,7 +28,8 @@
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      const url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/California-Vegetation-CanopyBaseHeight-2016-Summer-00010m.tiff";
+      const url_to_geotiff_file =
+        "https://georaster-layer-for-leaflet.s3.amazonaws.com/California-Vegetation-CanopyBaseHeight-2016-Summer-00010m.tiff";
       parseGeoraster(url_to_geotiff_file).then(function (georaster) {
         console.log("georaster:", georaster);
         const layer = new GeoRasterLayer({

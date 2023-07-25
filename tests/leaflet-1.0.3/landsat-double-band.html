@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,28 +16,32 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
-      var map = L.map("map").setView([0, 0], 11);
+      const map = L.map("map").setView([0, 0], 5);
 
       // add OpenStreetMap basemap
       L.tileLayer("http://{s}.tile.osm.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      const rasterUrl =
-        "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif";
-      parseGeoraster(rasterUrl).then(function (georaster) {
-        var layer = new GeoRasterLayer({
-          attribution: "Planet",
-          georaster,
+      const urls = [
+        "https://geoblaze.s3.amazonaws.com/LC08_L1TP_045032_20180811_20180815_01_T1_B5.TIF",
+        "https://geoblaze.s3.amazonaws.com/LC08_L1TP_045032_20180811_20180815_01_T1_B7.TIF"
+      ];
+
+      Promise.all(urls.map(url => parseGeoraster(url))).then(georasters => {
+        console.log("georasters:", georasters);
+        const layer = new GeoRasterLayer({
+          debugLevel: 0,
+          georasters,
           resolution: 512
         });
-        layer.addTo(map);
         map.fitBounds(layer.getBounds());
+        layer.addTo(map);
       });
     </script>
   </body>

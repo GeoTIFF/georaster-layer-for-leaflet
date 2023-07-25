@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0./dist/leaflet.css" />
+    <script src="https://unpkg.com/reproject-geojson"></script>
     <style>
       #map {
         bottom: 0;
@@ -16,7 +17,7 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0./dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
@@ -32,7 +33,7 @@
       const rasterUrl =
         "https://storage.googleapis.com/pdd-stac/disasters/hurricane-harvey/0831/20170831_172754_101c_3b_Visual.tif";
       parseGeoraster(rasterUrl).then(function (georaster) {
-        const { noDataValue } = georaster;
+        const { noDataValue, xmin, ymin, xmax, ymax } = georaster;
         var pixelValuesToColorFn = function (values) {
           if (
             values.some(function (value) {
@@ -51,7 +52,23 @@
           attribution: "Planet",
           georaster: georaster,
           pixelValuesToColorFn: pixelValuesToColorFn,
-          resolution: resolution
+          resolution: resolution,
+          mask: {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [xmin, ymax],
+                  [xmin, ymin],
+                  [xmax, ymin],
+                  [xmax, ymax],
+                  [xmin, ymax]
+                ]
+              ]
+            }
+          },
+          mask_srs: georaster.projection
         });
         layer.addTo(map);
 

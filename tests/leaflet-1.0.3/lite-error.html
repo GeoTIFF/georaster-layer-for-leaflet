@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0./dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,12 +16,17 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0./dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="../dist/georaster-layer-for-leaflet.lite.min.js"></script>
     <script>
       // initalize leaflet map
       var map = L.map("map").setView([0, 0], 5);
+
+      // add OpenStreetMap basemap
+      L.tileLayer("http://{s}.tile.osm.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
 
       var url_to_geotiff_file = "./m_3008501_ne_16_1_20171018.tif";
 

@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/modern-normalize/modern-normalize.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -16,7 +17,7 @@
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
@@ -31,33 +32,18 @@
 
       const rasterUrl =
         "https://storage.googleapis.com/pdd-stac/disasters/hurricane-harvey/0831/20170831_172754_101c_3b_Visual.tif";
-      parseGeoraster(rasterUrl).then(function (georaster) {
-        const { noDataValue } = georaster;
-        var pixelValuesToColorFn = function (values) {
-          if (
-            values.some(function (value) {
-              return value === noDataValue;
-            })
-          ) {
-            return "rgba(0,0,0,0.0)";
-          } else {
-            const [r, g, b] = values;
-            return `rgba(${r},${g},${b},.85)`;
-          }
-        };
-        const resolution = 64;
-        var layer = new GeoRasterLayer({
-          debugLevel: 4,
+      parseGeoraster(rasterUrl).then(georaster => {
+        const lyr = new GeoRasterLayer({
           attribution: "Planet",
-          georaster: georaster,
-          pixelValuesToColorFn: pixelValuesToColorFn,
-          resolution: resolution
+          debugLevel: 4,
+          georaster,
+          resolution: 64
         });
-        layer.addTo(map);
+        lyr.addTo(map);
 
         setTimeout(() => {
-          map.flyToBounds(layer.getBounds());
-        }, 1000);
+          map.flyToBounds(lyr.getBounds());
+        }, 1000)
       });
     </script>
   </body>
