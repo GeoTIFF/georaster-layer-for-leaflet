@@ -8,6 +8,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "types": "./dist/v3/ts/types/georaster-layer-for-leaflet.d.ts",
       "import": "./dist/v3/babel/esm/georaster-layer-for-leaflet.js",
       "require": "./dist/v3/babel/cjs/georaster-layer-for-leaflet.js"
     }
