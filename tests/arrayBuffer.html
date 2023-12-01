@@ -18,7 +18,7 @@
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="../dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
       var map = L.map("map").setView([0, 0], 5);
@@ -39,9 +39,10 @@
           parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
-              debugLevel: 4,
+              debugLevel: 1,
               georaster: georaster,
-              resolution: 512
+              resolution: 512,
+              resampleMethod: "near"
             });
             map.fitBounds(layer.getBounds());
             layer.addTo(map);

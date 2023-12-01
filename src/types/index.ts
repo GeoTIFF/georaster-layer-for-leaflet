@@ -15,7 +15,7 @@ export type SimplePoint = {
   y: number;
 };
 
-export type Mask = string | Feature | FeatureCollection | Polygon | MultiPolygon;
+export type Mask = string | Feature | FeatureCollection | Polygon | MultiPolygon | "auto";
 
 interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number | { [key: number]: number };
@@ -27,6 +27,7 @@ interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   mask?: Mask;
   mask_srs?: string | number;
   mask_strategy?: MaskStrategy;
+  turbo?: boolean | undefined;
   updateWhenIdle?: boolean; // inherited from LeafletJS
   updateWhenZooming?: boolean; // inherited from LeafletJS
   keepBuffer?: number; // inherited from LeafletJS

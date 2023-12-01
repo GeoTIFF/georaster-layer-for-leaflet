@@ -18,7 +18,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/chroma-js"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
 
     <script>
       // initalize leaflet map
@@ -45,11 +45,20 @@
             var scale = chroma.scale("Viridis");
 
             var layer = new GeoRasterLayer({
+<<<<<<< Updated upstream
               debugLevel: 4,
               georaster,
               opacity: 0.7,
               pixelValuesToColorFn: function (pixelValues) {
                 var pixelValue = pixelValues[0]; // there's just one band in this raster
+=======
+                debugLevel: 4,
+                georaster,
+                mask: "auto",
+                opacity: 0.7,
+                pixelValuesToColorFn: function(pixelValues) {
+                  var pixelValue = pixelValues[0]; // there's just one band in this raster
+>>>>>>> Stashed changes
 
                 // if there's zero wind, don't return a color
                 if (pixelValue === 0) return null;

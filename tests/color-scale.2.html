@@ -18,11 +18,16 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/chroma-js"></script>
-    <script src="https://unpkg.com/georaster-layer-for-leaflet@2"></script>
+    <script src="https://unpkg.com/to-canvas@0.2.0/to-canvas.min.js"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
 
     <script>
       // initalize leaflet map
+<<<<<<< Updated upstream
       var map = L.map("map").setView([0, 0], 5);
+=======
+      var map = L.map('map').setView([0, 0], 1);
+>>>>>>> Stashed changes
 
       // add OpenStreetMap basemap
       L.tileLayer("http://{s}.tile.osm.org/{z}/{x}/{y}.png", {
@@ -44,6 +49,7 @@
             console.log(chroma.brewer);
             var scale = chroma.scale("Viridis");
 
+<<<<<<< Updated upstream
             var layer = new GeoRasterLayer({
               debugLevel: 4,
               georaster: georaster,
@@ -62,11 +68,57 @@
                 return color;
               },
               resolution: 256
+=======
+            const pixelValuesToColorFn = function (pixelValues) {
+              // debugger;
+              var pixelValue = pixelValues[0]; // there's just one band in this raster
+
+              // if there's zero wind, don't return a color
+              // if (pixelValue === 0) return null;
+              // if (pixelValue === "0") return `rgba(0,0,0,0)`;
+              // if (pixelValue === 0) return `rgba(0,0,0,0)`;
+              if (pixelValue === 0) return null;
+              // XX GEOWARP CANVAS SHOULD SKIP PAINTING NULL VALUES
+
+
+              // scale to 0 - 1 used by chroma
+              var scaledPixelValue = (pixelValue - min) / range;
+
+
+              // return scale(scaledPixelValue).hex();
+
+
+              return scale(scaledPixelValue).rgb();
+
+              // console.log({pixelValue, min, range, scaledPixelValue, color});
+              // debugger;
+            };
+
+            var layer = new GeoRasterLayer({
+                debugLevel: 0,
+                georaster: georaster,
+                opacity: 0.7,
+                // mask: "auto",
+                pixelValuesToColorFn,
+                resolution: 128,
+                // _valid_tiles: ["1/0/0"],
+                  // onReadRasters: function ({ data, height, width }) {
+                  //   data = data[0].flat().map(n => pixelValuesToColorFn([n]));
+                  //   console.log("stretched data:", data);
+                  //   toCanvas({ data, height, width })
+                  //     .then(async (canvas) => {
+                  //       const url = await canvas.toDataURL();
+                  //       console.log("data url:", url);
+                  //     })
+                  // }
+>>>>>>> Stashed changes
             });
             console.log("layer:", layer);
             layer.addTo(map);
 
-            map.fitBounds(layer.getBounds());
+            const bounds = layer.getBounds();
+            console.log("bounds:", bounds);
+            // map.fitBounds(bounds);
           });
         });
     </script>
