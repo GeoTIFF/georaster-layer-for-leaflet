@@ -312,6 +312,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         this.mask_srs = "EPSG:4326";
       }
     }
+    this.mask_strategy = options.mask_strategy;
   },
 
   getProjDef: function (proj: number | string) {
@@ -354,6 +355,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     const coordsKey = this._tileCoordsToKey(coords);
 
     const resolution = this._getResolution(coords.z);
+    if (resolution === undefined) throw new Error("[georaster-layer-for-leaflet] resolution is undefined");
+
+    // saving resolution, which we will need later if/when redrawing
+    (tile as any).resolution = resolution;
+
     const key = `${coordsKey}:${resolution}`;
     const doneCb = (error?: Error, tile?: HTMLElement): void => {
       done(error, tile);
@@ -381,7 +387,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
       const timed = debugLevel >= 1;
 
-      if (debugLevel >= 2) console.log("starting drawTile with", { tile, coords, context, done });
+      if (debugLevel >= 2) console.log("starting drawTile with", { tile, coords, context, done, resolution });
 
       let error: Error;
 
@@ -389,6 +395,10 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       const { x, y, z } = coords;
 
       const cacheKey = [z, x, y].join("/");
+
+      if (isNaN(resolution)) {
+        throw new Error(`[georaster-layer-for-leafler] [${cacheKey}] resolution isNaN`);
+      }
 
       if (this.options._valid_tiles && !this.options._valid_tiles.includes(cacheKey)) return;
 
@@ -595,6 +605,12 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           console.log(`[georaster-layer-for-leaflet] [${cacheKey}] numberOfSamplesDown: ${numberOfSamplesDown}`);
       }
 
+      if (isNaN(numberOfSamplesAcross)) {
+        throw new Error(
+          `[georaster-layer-for-leaflet [${cacheKey}] numberOfSamplesAcross is NaN when resolution=${resolution} and extentOfInnerTileInMapCRS.width=${extentOfInnerTileInMapCRS.width} and extentOfTileInMapCRS.width=${extentOfTileInMapCRS.width}`
+        );
+      }
+
       if (debugLevel >= 3) {
         console.log(
           "[georaster-layer-for-leaflet] extent of inner tile before snapping " +
@@ -701,16 +717,26 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         try {
           const startReadRasters = timed ? performance.now() : 0;
           const stack = await this.stack;
+          const stack_size = [numberOfSamplesAcross, numberOfSamplesDown];
           const { data: tileRasters }: { data: number[][][] } = await stack.read({
             extent: extentOfInnerTileInMapCRS,
-            size: [numberOfSamplesAcross, numberOfSamplesDown]
+            size: stack_size
           });
-          if (timed)
-            console.log(
-              `[georaster-layer-for-leaflet] [${cacheKey}] reading rasters took: ${
-                performance.now() - startReadRasters
-              }ms`
+
+          if (tileRasters === undefined) {
+            throw new Error(
+              `tileRasters is undefined when extent is ${extentOfInnerTileInMapCRS.js} and size is ${JSON.stringify([
+                numberOfSamplesAcross,
+                numberOfSamplesDown
+              ])}`
             );
+          }
+
+          if (timed) {
+            const durationReadRasters = performance.now() - startReadRasters;
+            console.log(`[georaster-layer-for-leaflet] [${cacheKey}] reading rasters took: ${durationReadRasters}ms`);
+          }
+
           if (this.options.onReadRasters) {
             this.options.onReadRasters({
               data: tileRasters,
@@ -724,6 +750,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           if (this.calcStats) {
             const start_calc_stats = debugLevel >= 1 ? performance.now() : 0;
             const { noDataValue } = this;
+            const original_ranges: number[] = Array.from(this.currentStats.ranges);
             for (let bandIndex = 0; bandIndex < tileRasters.length; bandIndex++) {
               let min = this.currentStats.mins[bandIndex];
               let max = this.currentStats.maxs[bandIndex];
@@ -735,21 +762,9 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
                   if (value !== noDataValue) {
                     if (min === undefined || value < min) {
                       min = value;
-                      // invalidate cache because previous tiles used less accurate stats
-                      this._cache = { innerTile: {}, tile: {} };
                     }
                     if (max === undefined || value > max) {
                       max = value;
-                      // invalidate cache because previous tiles used less accurate stats
-                      this._cache = { innerTile: {}, tile: {} };
-                      const tiles = this.getActiveTiles();
-
-                      // redraw old tiles
-                      tiles.forEach((tile: Tile) => {
-                        const { coords, el } = tile;
-                        // this.drawTile({ tile: el, coords, context: el.getContext("2d") });
-                      });
-                      if (debugLevel >= 1) console.log("redrew tiles");
                     }
                   }
                 }
@@ -758,6 +773,34 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
               this.currentStats.maxs[bandIndex] = max;
               this.currentStats.ranges[bandIndex] = max - min;
             }
+
+            let redraw = false;
+            for (let bandIndex = 0; bandIndex < tileRasters.length; bandIndex++) {
+              const old_range = original_ranges[bandIndex];
+              const new_range = this.currentStats.ranges[bandIndex];
+              const diff_range = new_range - old_range;
+              const percentage_change = diff_range / old_range;
+              const threshold = 1 / 256;
+              if (percentage_change > threshold) {
+                redraw = true;
+                break;
+              }
+            }
+
+            if (redraw) {
+              if (debugLevel >= 1) console.log("[georaster-layer-for-leaflet] redrawing tiles");
+              // invalidate cache because previous tiles used less accurate stats
+              this._cache = { innerTile: {}, tile: {} };
+              const tiles = this.getActiveTiles();
+
+              // redraw old tiles
+              tiles.forEach((tile: Tile) => {
+                const { coords, el } = tile;
+                this.drawTile({ tile: el, coords, context: el.getContext("2d"), resolution: (el as any).resolution });
+              });
+              if (debugLevel >= 1) console.log("[georaster-layer-for-leaflet] finished redrawing tiles");
+            }
+
             if (this._dynamic) {
               const rawToRgbFn = (rawToRgb as any).default || rawToRgb;
               try {
@@ -1031,7 +1074,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
 
     tiles.forEach((tile: Tile) => {
       const { coords, el } = tile;
-      this.drawTile({ tile: el, coords, context: el.getContext("2d") });
+      this.drawTile({ tile: el, coords, context: el.getContext("2d"), resolution: (el as any).resolution });
     });
     if (debugLevel >= 1) console.log("Finished updating active tile colours");
     return this;

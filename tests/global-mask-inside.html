@@ -38,7 +38,7 @@
           parseGeoraster(window.location.origin + "/tests/spam2010V1r1_global_H_WHEA_A.tif").then(async function (georaster) {
             console.log("georaster:", georaster);
             var layer = new GeoRasterLayer({
-              debugLevel: 10,
+              debugLevel: 0,
               georaster: georaster,
               resolution: Number(new URL(window.location.href).searchParams.get("resolution") || 512),
               pixelValuesToColorFn: function (values) {
@@ -47,8 +47,8 @@
                 }
                 if (values[0] > 200) return "brown";
               },
-              // mask: "./usa.geojson",
-              // mask_strategy: "inside"
+              mask: "./usa.geojson",
+              mask_strategy: "inside"
             });
             layer.addTo(map);
           });
