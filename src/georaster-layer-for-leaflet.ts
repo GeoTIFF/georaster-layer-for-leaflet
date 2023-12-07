@@ -200,7 +200,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           }
           this.stats.ranges = zip(this.stats.mins, this.stats.maxs).map(([min, max]) => max - min);
         });
-        console.log("this.stats:", this.stats);
       }
 
       // in-case we want to track dynamic/running stats of all pixels fetched
@@ -332,7 +331,6 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
   },
 
   createTile: function (coords: Coords, done: DoneCallback) {
-    console.log("starting createTile with coords:", coords);
     /* This tile is the square piece of the Leaflet map that we draw on */
     const tile = L.DomUtil.create("canvas", "leaflet-tile") as HTMLCanvasElement;
 
@@ -591,18 +589,17 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
           extentOfInnerTileInMapCRS = new GeoExtent(newbox, { srs: extentOfInnerTileInMapCRS.srs });
         }
       } else {
-        // even if we aren't doing the more advacned sample alignment above
+        // even if we aren't doing the more advanced sample alignment above
         // we should still factor in the resolution when determing the resolution of the sampled rasters
         // for example, if the inner tile only takes up 10% of the total tile container space,
         // we shouldn't sample 256 times across
         numberOfSamplesAcross = Math.ceil(resolution * (extentOfInnerTileInMapCRS.width / extentOfTileInMapCRS.width));
         numberOfSamplesDown = Math.ceil(resolution * (extentOfInnerTileInMapCRS.height / extentOfTileInMapCRS.height));
 
-        log(`Math.ceil(${resolution} * (${extentOfInnerTileInMapCRS.width} / ${extentOfTileInMapCRS.width}))`);
-        if (debugLevel >= 2)
+        if (debugLevel >= 2) {
           console.log(`[georaster-layer-for-leaflet] [${cacheKey}] numberOfSamplesAcross: ${numberOfSamplesAcross}`);
-        if (debugLevel >= 2)
           console.log(`[georaster-layer-for-leaflet] [${cacheKey}] numberOfSamplesDown: ${numberOfSamplesDown}`);
+        }
       }
 
       if (isNaN(numberOfSamplesAcross)) {
@@ -806,7 +803,12 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
               try {
                 this.rawToRgb = rawToRgbFn({
                   format: "string",
-                  flip: this.currentStats.mins.length === 1 ? true : false,
+                  flip:
+                    typeof this.options.flip === "boolean"
+                      ? this.options.flip
+                      : this.currentStats.mins.length === 1
+                        ? true
+                        : false,
                   ranges: zip(this.currentStats.mins, this.currentStats.maxs),
                   round: true
                 });
