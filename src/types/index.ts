@@ -4,7 +4,7 @@ import type { Feature, FeatureCollection, Polygon, MultiPolygon } from "geojson"
 
 export type MaskStrategy = "inside" | "outside";
 
-export type PixelValuesToColorFn = (values: number[]) => string;
+export type PixelValuesToColorFn = (values: number[]) => string | null;
 
 export type DebugLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
