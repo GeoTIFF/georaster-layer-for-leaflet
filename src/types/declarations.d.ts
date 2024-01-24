@@ -4,6 +4,7 @@ declare module "proj4-fully-loaded";
 declare module "bbox-fns";
 declare module "bbox-fns/dense-polygon.js";
 declare module "bbox-fns/merge.js";
+declare module "bbox-fns/polygon.js";
 declare module "bbox-fns/shift.js";
 declare module "bbox-fns/split.js";
 declare module "bbox-fns/union.js";
