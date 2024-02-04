@@ -18,7 +18,7 @@
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="../dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
       var map = L.map("map").setView([0, 0], 5);
@@ -37,7 +37,8 @@
         .then(function (arrayBuffer) {
           parseGeoraster(arrayBuffer).then(function (georaster) {
             var layer = new GeoRasterLayer({
-              georaster: georaster,
+              georaster,
+              resolution: 32,
               customDrawFunction: function ({ context, x, y, width, height, values }) {
                 // from https://github.com/stuartmatthews/leaflet-geotiff/blob/master/leaflet-geotiff-vector-arrows.js
                 var value = values[0];

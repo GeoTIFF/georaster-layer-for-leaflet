@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> -->
+    <link rel="stylesheet" href="../node_modules/leaflet/dist/leaflet.css" />
     <style>
       #map {
         bottom: 0;
@@ -15,11 +16,12 @@
   </head>
   <body>
     <div id="map"></div>
-    <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <!-- <script src="https://unpkg.com/georaster-layer-for-leaflet"></script> -->
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
+    <script src="https://unpkg.com/to-canvas"></script>
     <script>
       // initalize leaflet map
       var map = L.map("map").setView([0, 0], 0);
@@ -45,19 +47,20 @@
             return `rgba(${r},${g},${b},.85)`;
           }
         };
-        const resolution = 64;
         var layer = new GeoRasterLayer({
           debugLevel: 4,
           attribution: "Planet",
           georaster: georaster,
-          pixelValuesToColorFn: pixelValuesToColorFn,
-          resolution: resolution
+          pixelValuesToColorFn,
+          resolution: 256
         });
         layer.addTo(map);
 
         setTimeout(() => {
-          map.flyToBounds(layer.getBounds());
-        }, 1000);
+          if (new URL(window.location.href).searchParams.get("fly") !== "false") {
+            map.flyToBounds(layer.getBounds());
+          }
+        }, 1000)
       });
     </script>
   </body>

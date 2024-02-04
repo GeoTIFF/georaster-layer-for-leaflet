@@ -19,7 +19,7 @@
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
       var map = L.map("map").setView([0, 0], 0);
@@ -39,13 +39,10 @@
             const y = 1;
             const point = L.point({ x, y });
             point.z = zoom;
-            await new Promise((resolve, reject) => {
-              debugger;
-              layer.createTile(point, tile => {
-                console.log("created tile:", tile);
-                resolve(tile);
-              });
+            const tile = await new Promise((resolve, reject) => {
+              const tile = layer.createTile(point, done => resolve(tile));
             });
+            console.log({tile});
           });
         }, 3000);
       }

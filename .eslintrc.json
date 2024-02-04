@@ -11,23 +11,19 @@
   },
   "plugins": ["@typescript-eslint/eslint-plugin", "prettier"],
   "extends": [
-    "prettier",
-    "plugin:@typescript-eslint/eslint-recommended",
-    "plugin:@typescript-eslint/recommended",
-    "eslint-config-prettier/@typescript-eslint"
+    "plugin:prettier/recommended"
   ],
   "ignorePatterns": ["dist", "webpack.config.js"],
   "rules": {
     "@typescript-eslint/ban-ts-comment": "warn",
     "arrow-parens": ["error", "as-needed"],
     "comma-dangle": ["error", { "objects": "never" }],
-    "indent": ["error", 2],
     "linebreak-style": ["error", "unix"],
     "no-console": "off",
     "no-multiple-empty-lines": "error",
     "no-unused-vars": ["error", { "args": "none" }],
     "no-var": "error",
-    "object-curly-spacing": ["error", "always", { "objectsInObjects": false }],
+    "object-curly-spacing": ["error", "always", { "objectsInObjects": true }],
     "prefer-arrow-callback": "error",
     "prefer-const": "error",
     "prefer-rest-params": "error",
