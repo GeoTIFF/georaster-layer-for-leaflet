@@ -335,7 +335,7 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     this.mask_strategy = options.mask_strategy;
   },
 
-  getProjDef: function (proj: number | string) {
+  getProjectionString: function (proj: number | string) {
     if (isUTM(proj)) return getProjString(proj);
     if (typeof proj === "number") proj = "EPSG:" + proj;
     if (proj in this.proj4.defs) return proj;
@@ -343,12 +343,20 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     throw new Error("[georaster-layer-for-leaflet] unsupported projection:" + proj);
   },
 
-  getProjector: function (_from: number | string, _to: number | string) {
+  getProjector: function (_from: number | string, _to: number | string = "EPSG:4326") {
+    if (_from === null || _from === undefined) {
+      if (new Set(this.georasters.map((georaster: any) => georaster.projection)).size !== 1) {
+        throw new Error("[georaster-layer-for-leaflet] getProjector called without a _from and georasters don't all have the same projection");
+      } else {
+        _from = this.georasters[0].projection;
+      }
+    }
+
     if (!this.isSupportedProjection(_from)) {
       throw Error("[georaster-layer-for-leaflet] unsupported projection: " + _from);
     }
     if (!this.isSupportedProjection(_to)) throw Error("[georaster-layer-for-leaflet] unsupported projection: " + _to);
-    return this.proj4(this.getProjDef(_from), this.getProjDef(_to));
+    return this.proj4(this.getProjectionString(_from), this.getProjectionString(_to));
   },
 
   createTile: function (coords: Coords, done: DoneCallback) {
@@ -566,7 +574,14 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
       // const defaultCanvasWidth = Math.max(256, this.resolution || 256);
       // const widthOfCanvasPixelInMapCRS = extentOfTileInMapCRS.width / defaultCanvasHeight;
       // const heightOfCanvasPixelInMapCRS = extentOfTileInMapCRS.height / defaultCanvasWidth;
-      if (debugLevel >= 3) log({ heightOfScreenPixelInMapCRS, widthOfScreenPixelInMapCRS });
+      if (debugLevel >= 3)
+        console.log(
+          `[georaster-layer-for-leaflet] [${cacheKey}] heightOfScreenPixelInMapCRS: ${heightOfScreenPixelInMapCRS}`
+        );
+      if (debugLevel >= 3)
+        console.log(
+          `[georaster-layer-for-leaflet] [${cacheKey}] widthOfScreenPixelInMapCRS: ${widthOfScreenPixelInMapCRS}`
+        );
 
       // even if we aren't doing the more advanced sample alignment above
       // we should still factor in the resolution when determing the resolution of the sampled rasters
@@ -579,10 +594,13 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
         resolution * (extentOfInnerTileInMapCRS.height / extentOfTileInMapCRS.height)
       );
 
-      const skew = map_crs_code === ("EPSG:" + this.georasters[0].projection) ? [0, 0] : measureSkew(
-        [this.georasters[0].xmin, this.georasters[0].ymin, this.georasters[0].xmax, this.georasters[0].ymax],
-        this.getProjector(this.georasters[0].projection, map_crs_code).forward
-      );
+      const skew =
+        map_crs_code === "EPSG:" + this.georasters[0].projection
+          ? [0, 0]
+          : measureSkew(
+              [this.georasters[0].xmin, this.georasters[0].ymin, this.georasters[0].xmax, this.georasters[0].ymax],
+              this.getProjector(this.georasters[0].projection, map_crs_code).forward
+            );
       if (debugLevel >= 2) console.log(`[georaster-layer-for-leaflet] [${cacheKey}] skew:`, skew);
 
       if (
@@ -978,7 +996,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
             theoretical_max,
             expr,
             turbo: this.options.turbo ?? false,
-            skip_no_data_strategy: "any" // don't bother trying to render pixels with no data values
+            skip_no_data_strategy: "any", // don't bother trying to render pixels with no data values
+            before_warp: (options: any) => {
+              // provide backwards compatability
+              this.getColor = (pixel: number[]) => options.expr({ pixel });
+            }
           });
           tile.style.visibility = "visible";
         } catch (e: any) {
@@ -1144,6 +1166,11 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     if (this.subextents.some((extent: any) => extent.overlaps(rightBounds))) return true;
 
     return false;
+  },
+
+  // provided for backwards compatability
+  getColor: function (values: number[]): string | undefined {
+    throw new Error("[georaster-layer-for-leaflet] please call getColor after creating at least one tile");
   },
 
   /**

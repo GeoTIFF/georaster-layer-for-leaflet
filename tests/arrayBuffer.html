@@ -38,7 +38,7 @@
         .then(function (arrayBuffer) {
           parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
-            var layer = new GeoRasterLayer({
+            layer = new GeoRasterLayer({
               debugLevel: 0,
               georaster,
               resolution: 512,
