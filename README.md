@@ -154,6 +154,7 @@ Please read about our advanced capabilities including custom context drawing fun
 Check out our [Frequently Asked Questions](FAQs.md)
 
 ## Videos
+- [Load geotiff with style and add popup in leaflet](https://youtu.be/qr_KtS5Zu94?si=DqfTeTtLTfjr9w-j)
 - [Edge Compute: Cool Stuff You Can Do With COGs in the Browser](https://www.youtube.com/watch?v=XTkNhGpfmB8&t=4190s)
 - [2019 - Algorithm Walk-through: How to Visualize a Large GeoTIFF on Your Web Map](https://www.youtube.com/watch?v=K47JvCL99w0)
 
