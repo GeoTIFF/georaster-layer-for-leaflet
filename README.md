@@ -76,7 +76,7 @@ var url_to_geotiff_file = "example_4326.tif";
 fetch(url_to_geotiff_file)
   .then(response => response.arrayBuffer())
   .then(arrayBuffer => {
-    parse_georaster(arrayBuffer).then(georaster => {
+    parseGeoraster(arrayBuffer).then(georaster => {
       console.log("georaster:", georaster);
 
       /*
