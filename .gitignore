@@ -80,4 +80,4 @@ georaster-layer-for-leaflet.*
 
 # backup files
 *bak*
-
+*.tgz 

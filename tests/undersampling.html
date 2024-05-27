@@ -17,7 +17,8 @@
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
+    <!-- <script src="https://unpkg.com/georaster-layer-for-leaflet"></script> -->
     <script>
       const url_to_geotiff_file = "./check.tif";
 
@@ -29,7 +30,7 @@
           // initalize leaflet map
           const map = L.map("map");
           const lyr = new GeoRasterLayer({
-            debugLevel: 0,
+            debugLevel: 4,
             georaster,
             resolution: 512
           });

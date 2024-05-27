@@ -18,7 +18,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/chroma-js"></script>
-    <script src="https://unpkg.com/georaster-layer-for-leaflet@2"></script>
+    <script src="https://unpkg.com/to-canvas@0.2.0/to-canvas.min.js"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
 
     <script>
       // initalize leaflet map
@@ -66,7 +67,9 @@
             console.log("layer:", layer);
             layer.addTo(map);
 
-            map.fitBounds(layer.getBounds());
+            const bounds = layer.getBounds();
+            console.log("bounds:", bounds);
+            // map.fitBounds(bounds);
           });
         });
     </script>
