@@ -4,7 +4,7 @@ import type { Feature, FeatureCollection, Polygon, MultiPolygon } from "geojson"
 
 export type MaskStrategy = "inside" | "outside";
 
-export type PixelValuesToColorFn = (values: number[]) => string;
+export type PixelValuesToColorFn = (values: number[]) => string | undefined;
 
 export type DebugLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -31,6 +31,7 @@ interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   updateWhenZooming?: boolean; // inherited from LeafletJS
   keepBuffer?: number; // inherited from LeafletJS
   caching?: boolean;
+  customDrawFunction?: (options: CustomDrawFunctionOptions) => void;
 }
 
 // Ensures at least one of the georaster[s] options is defined while being ok the other is not
@@ -60,6 +61,20 @@ export interface DrawTileOptions {
   context: CanvasRenderingContext2D;
   done: DoneCallback;
   resolution: number;
+}
+
+export interface CustomDrawFunctionOptions {
+  values: number[] | null;
+  context: CanvasRenderingContext2D;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rasterX: number;
+  rasterY: number;
+  sampleX: number;
+  sampleY: number;
+  sampledRaster?: GeoRasterValues
 }
 
 // note: Tile is taken from leaflets `InternalTiles` type and should not be modified.  - SFR 2021-01-19
@@ -103,7 +118,8 @@ export interface GeoRaster {
   height: number;
   noDataValue: null | undefined | number | typeof NaN;
   numberOfRasters: number;
-  palette: string[];
+  // This was typed as `string[]` but what seems to work is `Uint8Array[]`
+  palette: Uint8Array[];
   pixelHeight: number;
   pixelWidth: number;
   projection: number;
@@ -116,6 +132,8 @@ export interface GeoRaster {
   xmin: number;
   ymax: number;
   ymin: number;
+  mins?: number[];
+  ranges?: number[];
   _blob_is_available: boolean;
   _data: string;
   _geotiff: Record<string, unknown> | undefined;
