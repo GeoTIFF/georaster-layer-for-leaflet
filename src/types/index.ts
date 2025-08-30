@@ -4,7 +4,7 @@ import type { Feature, FeatureCollection, Polygon, MultiPolygon } from "geojson"
 
 export type MaskStrategy = "inside" | "outside";
 
-export type PixelValuesToColorFn = (values: number[]) => string;
+export type PixelValuesToColorFn = (values: number[]) => string | null;
 
 export type DebugLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -15,7 +15,7 @@ export type SimplePoint = {
   y: number;
 };
 
-export type Mask = string | Feature | FeatureCollection | Polygon | MultiPolygon;
+export type Mask = string | Feature | FeatureCollection | Polygon | MultiPolygon | "auto";
 
 interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   resolution?: number | { [key: number]: number };
@@ -27,6 +27,7 @@ interface GeoRasterLayerOptions_CommonOptions extends GridLayerOptions {
   mask?: Mask;
   mask_srs?: string | number;
   mask_strategy?: MaskStrategy;
+  turbo?: boolean | undefined;
   updateWhenIdle?: boolean; // inherited from LeafletJS
   updateWhenZooming?: boolean; // inherited from LeafletJS
   keepBuffer?: number; // inherited from LeafletJS

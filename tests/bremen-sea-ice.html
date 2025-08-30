@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <style>
+      #map {
+        bottom: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/proj4"></script>
+    <script src="https://unpkg.com/proj4leaflet@1.0.2"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <!-- <script src="https://unpkg.com/georaster-layer-for-leaflet"></script> -->
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
+    <script src="https://unpkg.com/chroma-js"></script>
+    <script type="module">
+    	// set CRS
+      const EPSGRef = 'EPSG:3031'
+      const proj4Definition =
+        "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
+      const resolutions = [
+        0, 
+        78271.484, 
+        33072.982812632297,
+        16536.491406316149,
+        8268.2457031580743,
+        4134.1228515790372,
+        2067.0614257895186,
+        1033.5307128947593,
+        516.76535644737965,
+        258.38267822368982,
+        129.19133911184491,
+        64.595669555922456,
+        32.297834777961228,
+        16.148917388980614]
+
+    const crs = new L.Proj.CRS(EPSGRef, proj4Definition, {
+      origin: [-8929486, 6564912],
+      projectedBounds: L.bounds(L.point(-50, -38), L.point(130, -9)),
+      resolutions: resolutions
+    })
+    
+      // initalize leaflet map
+      var map = L.map("map", {
+        crs,
+        center: [-85.52885587994032,178.22048648568565],
+        zoom: 7,
+        minZoom: 2,
+        maxZoom: 10
+      })
+
+      // add AAD Polar Steregraphic Base Map
+      if (new URLSearchParams(window.location.search).get("basemap") !== "off") {
+        L.tileLayer('https://data.aad.gov.au/mbtileserver/services/tiles-newmap-12layers/tiles/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://data.aad.gov.au/map-attribution">Attribution</a>'
+        }).addTo(map);
+      }
+
+      var sea_ice = await parseGeoraster(window.location.origin + '/tests/bremen_sea_ice_conc_2022_9_9.tif');
+      
+      var layer = new GeoRasterLayer({
+        debugLevel: 10,
+        georaster: sea_ice,
+        resolution: 256
+      });
+      layer.addTo(map);
+      const bounds = layer.getBounds();
+      console.log("bounds:", bounds);
+      map.fitBounds(bounds);
+    </script>
+  </body>
+</html>

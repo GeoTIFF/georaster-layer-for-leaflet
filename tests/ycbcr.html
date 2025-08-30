@@ -15,10 +15,12 @@
   </head>
   <body>
     <div id="map"></div>
+    <script src="https://unpkg.com/flug"></script>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="https://unpkg.com/to-canvas"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
       const map = L.map("map").setView([0, 0], 5);
@@ -31,12 +33,18 @@
       const url_to_geotiff_file =
         "https://maxar-ard-samples.s3.amazonaws.com/v3/australia_vineyards/50/213133231011/2019-10-07/10500100191CD200-visual.tif";
       parseGeoraster(url_to_geotiff_file).then(function (georaster) {
+      // fetch(url_to_geotiff_file).then(r => r.arrayBuffer()).then(parseGeoraster).then(function (georaster) {
         console.log("georaster:", georaster);
         const layer = new GeoRasterLayer({
-          georaster
+          debugLevel: 4,
+          georaster,
+          resolution: 128,
+          // _valid_tiles: ["15/26855/19678"]
+          // _valid_tiles: ["16/53710/39354","16/53710/39355"]
         });
         map.fitBounds(layer.getBounds());
         layer.addTo(map);
+        map.setZoom(16);
       });
     </script>
   </body>

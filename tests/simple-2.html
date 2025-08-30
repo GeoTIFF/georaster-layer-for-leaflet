@@ -19,9 +19,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/proj4"></script>
     <script src="https://unpkg.com/georaster"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
     <script>
-      var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/vestfold.tif";
+      // var url_to_geotiff_file = "https://georaster-layer-for-leaflet.s3.amazonaws.com/vestfold.tif";
+      var url_to_geotiff_file = "http://localhost:8080/tests/vestfold.tif";
 
       fetch(url_to_geotiff_file)
         .then(function (response) {
@@ -30,20 +31,36 @@
         .then(function (arrayBuffer) {
           parseGeoraster(arrayBuffer).then(function (georaster) {
             console.log("georaster:", georaster);
+
+            // over-ride bug
+            georaster.noDataValue = -3.3999999521443642e+38;
+
+            const stats = calcImageStats(georaster.values, { noData: -3.3999999521443642e+38 });
+
+            georaster.mins = stats.bands.map(({ min }) => min);
+            georaster.maxs = stats.bands.map(({ max }) => max);
+
             // initalize leaflet map
             const map = L.map("map", {
               // use simple CRS
               // read more here: https://leafletjs.com/examples/crs-simple/crs-simple.html
-              crs: L.CRS.Simple
+              crs: L.CRS.Simple,
+              minZoom: -5
             });
             const lyr = new GeoRasterLayer({
-              debugLevel: 4,
+              debugLevel: 0,
               georaster,
-              resolution: 512
+              minZoom: -5,
+              resolution: 128
             });
             console.log({ lyr });
             lyr.addTo(map);
-            map.fitBounds(lyr.getBounds());
+            console.log("added to map");
+            const bounds = lyr.getBounds();
+            console.log("bounds:", bounds);
+            map.fitBounds(bounds);
+            console.log("fitted map to bounds");
+            window.map = map;
           });
         });
     </script>

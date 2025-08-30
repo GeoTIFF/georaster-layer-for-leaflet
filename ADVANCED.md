@@ -47,3 +47,6 @@ new GeoRasterLayer({
   mask_strategy: "outside"
 });
 ```
+
+# Turbo Mode
+You can enable turbo mode, which will in some cases lead to better performance.  However, it is experimental, so should be tested first on your data before using in production.  Internally, it uses [proj-turbo](https://github.com/DanielJDufour/proj-turbo).

@@ -18,9 +18,11 @@
     <div id="map"></div>
     <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/flug"></script>
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/proj4"></script>
-    <script src="../dist/georaster-layer-for-leaflet.min.js"></script>
+    <script src="https://unpkg.com/to-canvas"></script>
+    <script src="/dist/v3/webpack/bundle/georaster-layer-for-leaflet.min.js"></script>
     <script>
       // initalize leaflet map
       var map = L.map("map").setView([0, 0], 0);
@@ -37,9 +39,16 @@
           attribution: "Planet",
           debugLevel: 4,
           georaster,
-          resolution: 64
+          resolution: 256
         });
         lyr.addTo(map);
+
+        // const coords = L.
+        // const tile = lyr.createTile({
+        //   x: 956,
+        //   y: 1695,
+        //   z: 12
+        // });
 
         setTimeout(() => {
           map.flyToBounds(lyr.getBounds());
