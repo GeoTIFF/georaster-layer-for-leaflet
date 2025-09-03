@@ -87,9 +87,8 @@ const GeoRasterLayer: (new (options: GeoRasterLayerOptions) => any) & typeof L.C
     turbo: false
   },
 
-  cache: {},
-
   initialize: function (options: GeoRasterLayerOptions) {
+    this.cache = {};
     this.proj4 = proj4collect();
 
     try {
